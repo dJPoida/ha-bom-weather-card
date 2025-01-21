@@ -1,0 +1,10 @@
+services:
+  homeassistant:
+    image: "homeassistant/home-assistant:beta"
+    container_name: homeassistant
+    volumes:
+      - .hass:/config
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+      

@@ -1,0 +1,8 @@
+mode: storage
+dashboards:
+  test-dashboard:
+    mode: yaml
+    title: Test Dashboard
+    icon: mdi:window-maximize
+    show_in_sidebar: true
+    filename: test-dashboard.yaml

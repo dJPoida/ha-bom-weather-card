@@ -1,0 +1,3 @@
+title: Test Dashboard
+views:
+  - !include views/test-view.yaml

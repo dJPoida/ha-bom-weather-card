@@ -1,0 +1,5 @@
+title: Test View
+icon: mdi:test-tube
+cards:
+  - type: custom:bom-weather-card
+    title: "Test Bom Weather"

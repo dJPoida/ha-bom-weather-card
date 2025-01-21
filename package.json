@@ -1,0 +1,41 @@
+{
+  "name": "@djpoida/ha-bom-weather-card",
+  "version": "1.0.0",
+  "author": "Peter Eldred",
+  "license": "MIT",
+  "description": "A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app",
+  "main": "dist/ha-bom-weather-card.js",
+  "module": "dist/ha-bom-weather-card.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "serve": "rollup -c --watch",
+    "hass:start": "docker-compose up -d",
+    "hass:restart": "docker-compose restart",
+    "hass:stop": "docker-compose down",
+    "hass:clean": "node tools/clean-hass-dev.cjs",
+    "install:bureau_of_meteorology": "docker-compose exec homeassistant /config/scripts/install_bureau_of_meteorology.sh && docker restart homeassistant",
+    "install:hacs": "docker-compose exec homeassistant /config/scripts/install_hacs.sh && docker restart homeassistant"
+  },
+  "dependencies": {
+    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-replace": "^6.0.2",
+    "custom-card-helpers": "^1.9.0",
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/mocha": "^10.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "prettier": "^3.4.2",
+    "rollup": "^4.9.1",
+    "rollup-plugin-filesize": "^10.0.0",
+    "rollup-plugin-serve": "^1.1.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
+  }
+}

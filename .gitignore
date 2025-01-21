@@ -1,0 +1,14 @@
+node_modules
+dist/**/*
+!dist/*.js
+.hass/*
+!.hass/configuration.yaml
+!.hass/lovelace.yaml
+!.hass/automations.yaml
+!.hass/scripts.yaml
+!.hass/scenes.yaml
+!.hass/test-dashboard.yaml
+!.hass/views
+!.hass/www
+!.hass/scripts
+.hass/www/community/*
