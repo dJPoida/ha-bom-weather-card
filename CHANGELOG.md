@@ -1,4 +1,5 @@
 # @djpoida/ha-bom-weather-card
 
-## 1.0.0
-- Initial commit.
+## 0.0.1
+
+- Initial development version.

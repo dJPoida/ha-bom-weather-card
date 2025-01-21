@@ -71,14 +71,14 @@ const t=t=>(e,o)=>{ undefined!==o?o.addInitializer((()=>{customElements.define(t
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CUSTOM_CARD_ID = "bom-weather-card";
+const CUSTOM_CARD_ID = 'bom-weather-card';
 
 let BomWeatherCard = class BomWeatherCard extends r$2 {
     constructor() {
         super(...arguments);
-        this._title = "";
-        this._element_id = "";
-        this._element_value = "";
+        this._title = '';
+        this._element_id = '';
+        this._element_value = '';
     }
     setConfig(config) {
         this._title = config.title;
@@ -91,21 +91,21 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         this._hass = hass;
         if (this._element_id)
             this._element_value = this._element_id
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ? this._hass.formatEntityState(hass.states[this._element_id])
-                : "N/A";
+                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    this._hass.formatEntityState(hass.states[this._element_id])
+                : 'N/A';
     }
     render() {
-        return x `<ha-card .header=${this._title}>
+        return x `<ha-card>
       <div class="card-content">
         <h3>BOM Calendar Card</h3>
         <span>${this._element_value}</span>
-      </div></ha-card
-    > `;
+      </div>
+    </ha-card> `;
     }
     // card configuration
     static getConfigElement() {
-        return document.createElement(CUSTOM_CARD_ID + "-editor");
+        return document.createElement(CUSTOM_CARD_ID + '-editor');
     }
 };
 __decorate([
@@ -124,7 +124,7 @@ class BomWeatherCardEditor extends r$2 {
         this._config = { type: CUSTOM_CARD_ID };
     }
     BomWeatherCardEditor() {
-        console.log("Loaded Editor");
+        console.log('Loaded Editor');
     }
     setConfig(config) {
         this._config = config;
@@ -137,7 +137,7 @@ class BomWeatherCardEditor extends r$2 {
         id="${name}"
         .hass=${this.hass}
         .label="${label} (Optional)"
-        .value=${this._config[name] ?? ""}
+        .value=${this._config[name] ?? ''}
         @value-changed=${this._change}
         allow-custom-entity
       >
@@ -149,8 +149,8 @@ class BomWeatherCardEditor extends r$2 {
       <ha-textfield
         id=${name}
         type="string"
-        .value=${this._config[name] ?? ""}
-        .label="${label} (${required ? "Required" : "Optional"})"
+        .value=${this._config[name] ?? ''}
+        .label="${label} (${required ? 'Required' : 'Optional'})"
         name=${name}
         @change=${this._change}
         no-spinner
@@ -162,8 +162,8 @@ class BomWeatherCardEditor extends r$2 {
     }
     render() {
         return x `<div class="card-config">
-      ${this.textField("title", "Title", false)}
-      ${this.entityPicker("element_id", "Entity to Show")}
+      ${this.textField('title', 'Title', false)}
+      ${this.entityPicker('element_id', 'Entity to Show')}
     </div> `;
     }
     _change(ev) {
@@ -174,11 +174,11 @@ class BomWeatherCardEditor extends r$2 {
         if (newValue === this._config[target.id])
             return;
         const newConfig = Object.assign({}, this._config);
-        if (newValue === "" || newValue == undefined)
+        if (newValue === '' || newValue == undefined)
             delete newConfig[target.id];
         else
             newConfig[target.id] = target.value;
-        const messageEvent = new CustomEvent("config-changed", {
+        const messageEvent = new CustomEvent('config-changed', {
             detail: { config: newConfig },
             bubbles: true,
             composed: true,
@@ -190,10 +190,10 @@ class BomWeatherCardEditor extends r$2 {
      * see: https://github.com/thomasloven/hass-config/wiki/PreLoading-Lovelace-Elements
      * */
     async loadEntityPicker() {
-        if (!window.customElements.get("ha-entity-picker")) {
+        if (!window.customElements.get('ha-entity-picker')) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const ch = await window.loadCardHelpers();
-            const c = await ch.createCardElement({ type: "entities", entities: [] });
+            const c = await ch.createCardElement({ type: 'entities', entities: [] });
             await c.constructor.getConfigElement();
             // Since ha-elements are not using scopedRegistry we can get a reference to
             // the newly loaded element from the global customElement registry...
@@ -209,12 +209,12 @@ __decorate([
 ], BomWeatherCardEditor.prototype, "_config", undefined);
 
 // customElements.define(CUSTOM_CARD_ID, BomWeatherCard);
-customElements.define(CUSTOM_CARD_ID + "-editor", BomWeatherCardEditor);
+customElements.define(CUSTOM_CARD_ID + '-editor', BomWeatherCardEditor);
 window.customCards = window.customCards || [];
 window.customCards.push({
     type: CUSTOM_CARD_ID,
-    name: "BOM Weather Card",
-    description: "A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app",
+    name: 'BOM Weather Card',
+    description: 'A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app',
     prototype: BomWeatherCard,
 });
 //# sourceMappingURL=bom-weather-card.js.map

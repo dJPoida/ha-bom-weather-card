@@ -1,11 +1,17 @@
 {
-    "cSpell.words": [
-        "automations",
-        "bremor",
-        "djpoida",
-        "eldred",
-        "hacs",
-        "hass",
-        "homeassistant"
-    ]
+  "cSpell.words": [
+    "automations",
+    "bremor",
+    "djpoida",
+    "eldred",
+    "hacs",
+    "hass",
+    "homeassistant",
+    "rollup"
+  ],
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true
 }

@@ -1,19 +1,22 @@
-import { LitElement, TemplateResult, html } from "lit";
-import { property, state } from "lit/decorators.js";
+import {LitElement, TemplateResult, html} from 'lit';
+import {property, state} from 'lit/decorators.js';
 import {
   HomeAssistant,
   LovelaceCardConfig,
   LovelaceCardEditor,
-} from "custom-card-helpers";
-import { CUSTOM_CARD_ID } from "./constants/custom-card-id.const";
-import { CardConfig } from "./types/card-config.type";
+} from 'custom-card-helpers';
+import {CardConfig} from './types/card-config.type';
+import {CUSTOM_CARD_ID} from './constants/custom-card-id.const';
 
-export class BomWeatherCardEditor extends LitElement implements LovelaceCardEditor {
-  @property({ attribute: false }) public hass!: HomeAssistant;
-  @state() _config: LovelaceCardConfig = { type: CUSTOM_CARD_ID };
+export class BomWeatherCardEditor
+  extends LitElement
+  implements LovelaceCardEditor
+{
+  @property({attribute: false}) public hass!: HomeAssistant;
+  @state() _config: LovelaceCardConfig = {type: CUSTOM_CARD_ID};
 
   BomWeatherCardEditor() {
-    console.log("Loaded Editor");
+    console.log('Loaded Editor');
   }
 
   setConfig(config: CardConfig): void {
@@ -28,7 +31,7 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
         id="${name}"
         .hass=${this.hass}
         .label="${label} (Optional)"
-        .value=${this._config[name] ?? ""}
+        .value=${this._config[name] ?? ''}
         @value-changed=${this._change}
         allow-custom-entity
       >
@@ -45,8 +48,8 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
       <ha-textfield
         id=${name}
         type="string"
-        .value=${this._config[name] ?? ""}
-        .label="${label} (${required ? "Required" : "Optional"})"
+        .value=${this._config[name] ?? ''}
+        .label="${label} (${required ? 'Required' : 'Optional'})"
         name=${name}
         @change=${this._change}
         no-spinner
@@ -59,8 +62,8 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
 
   override render() {
     return html`<div class="card-config">
-      ${this.textField("title", "Title", false)}
-      ${this.entityPicker("element_id", "Entity to Show")}
+      ${this.textField('title', 'Title', false)}
+      ${this.entityPicker('element_id', 'Entity to Show')}
     </div> `;
   }
 
@@ -71,10 +74,10 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     const newValue: string | undefined = target.value;
     if (newValue === this._config[target.id]) return;
     const newConfig = Object.assign({}, this._config);
-    if (newValue === "" || newValue == undefined) delete newConfig[target.id];
+    if (newValue === '' || newValue == undefined) delete newConfig[target.id];
     else newConfig[target.id] = target.value;
-    const messageEvent = new CustomEvent("config-changed", {
-      detail: { config: newConfig },
+    const messageEvent = new CustomEvent('config-changed', {
+      detail: {config: newConfig},
       bubbles: true,
       composed: true,
     });
@@ -87,12 +90,12 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
    * */
 
   async loadEntityPicker() {
-    if (!window.customElements.get("ha-entity-picker")) {
+    if (!window.customElements.get('ha-entity-picker')) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ch = await (window as any).loadCardHelpers();
-      const c = await ch.createCardElement({ type: "entities", entities: [] });
+      const c = await ch.createCardElement({type: 'entities', entities: []});
       await c.constructor.getConfigElement();
-      
+
       // Since ha-elements are not using scopedRegistry we can get a reference to
       // the newly loaded element from the global customElement registry...
       // const haEntityPicker = window.customElements.get("ha-entity-picker");
