@@ -120,6 +120,17 @@ Install [Home Assistant Community Store (HACS)](#home-assistant-community-store-
 
 If you receive this message when debugging the card in Home Assistant, it usually means that you haven't started the rollup web server by running
 
+### "The edit UI is not available when in YAML mode."
+
+This message appears when you try to edit the Test View in the Test Dashboard. Unfortunately the test dashboard is controlled by the .yaml in this repo and thus can't be edited. Create a new view in the Overview dashboard to manually create instances of this component and experiment with the edit component.
+
+### Can't edit the default dashboard
+
+This dashboard is initially controlled by Home Assistant. To to take control of it:
+
+- Click the pencil (edit) button in the top right
+- Select the three dots menu and select "Take Control"
+
 # Links and References:
 
 - [custom-card-helpers Documentation](https://custom-cards.github.io/custom-card-helpers/index.html)
