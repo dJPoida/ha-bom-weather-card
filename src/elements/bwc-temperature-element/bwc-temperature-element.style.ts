@@ -1,10 +1,10 @@
 import {css} from 'lit';
 import {elementStyle} from '../../global.style';
 
-export const timeElementStyle = css`
+export const temperatureElementStyle = css`
   ${elementStyle}
 
-  .time-element {
+  .temperature-element {
     padding: var(--bwc-global-padding);
     font-size: var(--bwc-time-font-size);
     line-height: 1em;

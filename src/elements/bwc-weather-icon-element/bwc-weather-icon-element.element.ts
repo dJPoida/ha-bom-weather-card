@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {CSSResultGroup, LitElement, html} from 'lit';
+import {CSSResultGroup, html, LitElement} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
 import {WEATHER_ICON} from '../../weather-icons/weather-icons';
@@ -22,11 +22,9 @@ export class WeatherIconElement extends LitElement {
       ${weatherIconIndex &&
       (this.useHAWeatherIcons
         ? html`<ha-icon icon="mdi:weather-${weatherIconIndex}"></ha-icon>`
-        : html`<div class="icon-container">
-            ${unsafeHTML(WEATHER_ICON[weatherIconIndex])}
-          </div>`)}
+        : html`${unsafeHTML(WEATHER_ICON[weatherIconIndex])}`)}
     </div>`;
   }
 
-  static override styles: CSSResultGroup = weatherIconElementStyle;
+  static override styles: CSSResultGroup = [weatherIconElementStyle];
 }

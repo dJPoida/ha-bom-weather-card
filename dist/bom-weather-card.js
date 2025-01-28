@@ -82,8 +82,19 @@ const CONFIG_PROP = {
 
 const CUSTOM_CARD_ID = 'bom-weather-card';
 
+/**
+ * Default card configuration
+ *
+ * Used for two purposes.
+ *   1. Setting up a new CardConfig object
+ *   2. Checking if the keys in a CardConfig object are valid
+ *
+ * Be sure to update this object when adding new configuration properties
+ */
 const DEFAULT_CARD_CONFIG = {
     type: CUSTOM_CARD_ID,
+    index: 0,
+    view_index: 0,
     [CONFIG_PROP.TITLE]: undefined,
     [CONFIG_PROP.SHOW_TIME]: true,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: false,
@@ -149,6 +160,20 @@ const WEATHER_DOMAINS = [DOMAIN.WEATHER];
  */
 const isElementHaSwitch = (targetElement) => {
     return (targetElement.tagName ?? '').toLowerCase() === 'ha-switch';
+};
+
+/**
+ * Removes invalid properties from a config object (potentially
+ * stored at an earlier time when the schema was different).
+ */
+const removeInvalidConfigProperties = (config) => {
+    const validKeys = new Set(Object.keys(DEFAULT_CARD_CONFIG));
+    return Object.keys(config).reduce((acc, key) => {
+        if (validKeys.has(key)) {
+            acc[key] = config[key];
+        }
+        return acc;
+    }, {});
 };
 
 // Take an array of strings and return a string with each element separated by a comma and wrapped in double quotes
@@ -229,6 +254,9 @@ const bomWeatherCardEditorStyle = i$4 `
   .card-config {
     /* Cancels overlapping Margins for HAForm + Card Config options */
     overflow: auto;
+
+    /* Seems to fix a scroll bar issue created by an empty element picker */
+    padding-right: 16px;
   }
   ha-switch {
     padding: 16px 6px;
@@ -283,9 +311,20 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
         this.localize = getLocalizer(this.hass);
+        this._initialized = false;
     }
     setConfig(newConfig) {
-        this._config = { ...this._config, ...newConfig };
+        // On first load, merge the default config with the user provided config
+        if (!this._initialized) {
+            this._config = removeInvalidConfigProperties({
+                ...this._config,
+                ...newConfig,
+            });
+            this._initialized = true;
+        }
+        else {
+            this._config = { ...newConfig };
+        }
         // Preload the HA Entity Picker
         this.loadEntityPicker();
     }
@@ -336,10 +375,17 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     }
     render() {
         return x `<div class="card-config">
+      <!-- Title -->
       ${this.textField(CONFIG_PROP.TITLE, this.localize('editor.title'), false)}
+
+      <!-- Show Time -->
       ${this.booleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
+
+      <!-- Forecast Entity ID -->
+      ${this.entityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'), true)}
+
+      <!-- Use Default Weather Icons -->
       ${this.booleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))}
-      ${this.entityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'))}
     </div> `;
     }
     _change(ev) {
@@ -489,10 +535,101 @@ function requireClassnames () {
 var classnamesExports = requireClassnames();
 var classnames = /*@__PURE__*/getDefaultExportFromCjs(classnamesExports);
 
-const timeElementStyle = i$4 `
-  .time-element {
+const cssVariables = i$4 `
+  :host {
+    /* Bom Weather Card Custom CSS Variables */
+    --bwc-background-color-day-start: #63b0ff;
+    --bwc-background-color-day-end: #c4e1ff;
+    --bwc-background-color-night-start: #001d3b;
+    --bwc-background-color-night-end: #013565;
+    --bwc-time-font-size: 3.5rem;
+    --bwc-weather-icon-height: 3.5rem;
+    --bwc-min-height: 10rem;
+    --bwc-global-padding: 16px;
+
+    /* Conditional Colors based on Day/Night and Dark/Light Theme */
+    /* Light Theme / Day Mode */
+    --bwc-text-color: var(--text-light-primary-color);
+    --bwc-background-color-start: var(--bwc-background-color-day-start);
+    --bwc-background-color-end: var(--bwc-background-color-day-end);
+
+    /* Light Theme / Night Mode */
+    &.night {
+      --bwc-text-color: var(--text-primary-color);
+      --bwc-background-color-start: var(--bwc-background-color-night-start);
+      --bwc-background-color-end: var(--bwc-background-color-night-end);
+    }
+
+    /* Dark Theme / Day Mode */
+    &.dark-mode {
+      color: var(--text-light-primary-color);
+
+      /* Dark Theme / Night Mode */
+      &.night {
+        color: var(--text-primary-color);
+      }
+    }
+
+    /* Home Assistant Theme Overrides */
+    --ha-card-header-color: var(--bwc-text-color);
+  }
+`;
+const debugStyle = i$4 `
+  :host {
+    --bwc-debug-element-border: 1px solid red;
+    --bwc-debug-container-border: 1px solid orange;
+
+    & > div {
+      box-sizing: border-box;
+      border: var(--bwc-debug-element-border);
+    }
+
+    .container {
+      box-sizing: border-box;
+      border: var(--bwc-debug-container-border);
+    }
+  }
+`;
+const elementStyle = i$4 `
+  ${cssVariables}
+
+  :host {
     display: block;
-    padding: 16px;
+  }
+
+  ${debugStyle}
+`;
+
+const temperatureElementStyle = i$4 `
+  ${elementStyle}
+
+  .temperature-element {
+    padding: var(--bwc-global-padding);
+    font-size: var(--bwc-time-font-size);
+    line-height: 1em;
+  }
+`;
+
+let temperatureElement = class temperatureElement extends r$2 {
+    render() {
+        return x `<div class=${classnames('temperature-element')}>
+      ${this.temperature}&deg;
+    </div>`;
+    }
+};
+temperatureElement.styles = [temperatureElementStyle];
+__decorate([
+    n({ attribute: false })
+], temperatureElement.prototype, "temperature", undefined);
+temperatureElement = __decorate([
+    t$1('bwc-temperature-element')
+], temperatureElement);
+
+const timeElementStyle = i$4 `
+  ${elementStyle}
+
+  .time-element {
+    padding: var(--bwc-global-padding);
     font-size: var(--bwc-time-font-size);
     line-height: 1em;
   }
@@ -510,7 +647,6 @@ let TimeElement = class TimeElement extends r$2 {
     }
     connectedCallback() {
         super.connectedCallback();
-        console.log(this.hass);
         this._interval = window.setInterval(() => {
             this._updateTime();
         }, 1000);
@@ -528,7 +664,7 @@ let TimeElement = class TimeElement extends r$2 {
     </div>`;
     }
 };
-TimeElement.styles = timeElementStyle;
+TimeElement.styles = [timeElementStyle];
 __decorate([
     n({ attribute: false })
 ], TimeElement.prototype, "hass", undefined);
@@ -603,7 +739,22 @@ const WEATHER_ICON = {
     windy: windy,
 };
 
-const weatherIconElementStyle = i$4 ``;
+const weatherIconElementStyle = i$4 `
+  ${elementStyle}
+
+  .weather-icon-element {
+    /* Override the HA Icon height */
+    --mdc-icon-size: var(--bwc-weather-icon-height);
+
+    padding: var(--bwc-global-padding);
+    font-size: var(--bwc-weather-icon-height);
+    height: calc(var(--bwc-weather-icon-height)+var(--bwc-global-padding));
+
+    svg {
+      height: var(--bwc-weather-icon-height);
+    }
+  }
+`;
 
 let WeatherIconElement = class WeatherIconElement extends r$2 {
     constructor() {
@@ -618,13 +769,11 @@ let WeatherIconElement = class WeatherIconElement extends r$2 {
       ${weatherIconIndex &&
             (this.useHAWeatherIcons
                 ? x `<ha-icon icon="mdi:weather-${weatherIconIndex}"></ha-icon>`
-                : x `<div class="icon-container">
-            ${o(WEATHER_ICON[weatherIconIndex])}
-          </div>`)}
+                : x `${o(WEATHER_ICON[weatherIconIndex])}`)}
     </div>`;
     }
 };
-WeatherIconElement.styles = weatherIconElementStyle;
+WeatherIconElement.styles = [weatherIconElementStyle];
 __decorate([
     n({ attribute: false })
 ], WeatherIconElement.prototype, "hass", undefined);
@@ -644,60 +793,29 @@ const isDayMode = (hass) => {
         : true;
 };
 
-const style = i$4 `
-  ha-card {
-    /* Bom Weather Card Custom CSS Variables */
-    --bwc-background-color-day-start: #63b0ff;
-    --bwc-background-color-day-end: #c4e1ff;
-    --bwc-background-color-night-start: #001d3b;
-    --bwc-background-color-night-end: #013565;
-    --bwc-time-font-size: 3.5em;
-    --bwc-min-height: 10em;
-
-    /* Conditional Colors based on Day/Night and Dark/Light Theme */
-    /* Light Theme / Day Mode */
-    --bwc-text-color: var(--text-light-primary-color);
-    --bwc-background-color-start: var(--bwc-background-color-day-start);
-    --bwc-background-color-end: var(--bwc-background-color-day-end);
-
-    /* Light Theme / Night Mode */
-    &.night {
-      --bwc-text-color: var(--text-primary-color);
-      --bwc-background-color-start: var(--bwc-background-color-night-start);
-      --bwc-background-color-end: var(--bwc-background-color-night-end);
-    }
-
-    /* Dark Theme / Day Mode */
-    &.dark-mode {
-      color: var(--text-light-primary-color);
-
-      /* Dark Theme / Night Mode */
-      &.night {
-        color: var(--text-primary-color);
-      }
-    }
-
-    /* Home Assistant Theme Overrides */
-    --ha-card-header-color: var(--bwc-text-color);
-  }
-`;
-
 const bomWeatherCardStyle = i$4 `
-  ${style}
+  ${cssVariables}
 
   ha-card {
     color: var(--bwc-text-color);
+
+    /* TODO: make this configurable */
     background: linear-gradient(
       to bottom,
       var(--bwc-background-color-start),
       var(--bwc-background-color-end)
     );
     min-height: var(--bwc-min-height);
+
+    /* TODO: make this configurable */
+    border: none;
   }
 
   h1.card-header {
     padding-bottom: 0;
   }
+
+  ${debugStyle}
 `;
 
 let BomWeatherCard = class BomWeatherCard extends r$2 {
@@ -722,6 +840,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
     updated(changedProperties) {
         // TODO: This may get too heavy if hass changes often
         if (changedProperties.has('hass')) {
+            console.log('hass changed. If this happens too often, consider optimizing');
             this._dayMode = isDayMode(this.hass);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this._darkMode = this.hass.selectedTheme.dark === true;
@@ -740,19 +859,30 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             'light-mode': !this._darkMode,
         })}"
     >
+      <!-- Card Header -->
       ${this._config.title
             ? x `<h1 class="card-header">${this._config.title}</h1>`
             : E}
-      ${this._config.show_time
+
+      <!-- First Row -->
+      <div class="container">
+        <!-- Time -->
+        ${this._config.show_time
             ? x `<bwc-time-element .hass=${this.hass}></bwc-time-element>`
             : E}
-      ${this._config.forecast_entity_id
+
+        <!-- Temperature -->
+        <bwc-temperature-element .temperature=${20}></bwc-temperature-element>
+
+        <!-- Weather Icon -->
+        ${this._config.forecast_entity_id
             ? x `<bwc-weather-icon-element
-            .hass=${this.hass}
-            .useHAWeatherIcons=${this._config.use_ha_weather_icons}
-            .weatherEntityId=${this._config.forecast_entity_id}
-          ></bwc-weather-icon-element>`
+              .hass=${this.hass}
+              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+              .weatherEntityId=${this._config.forecast_entity_id}
+            ></bwc-weather-icon-element>`
             : E}
+      </div>
     </ha-card> `;
     }
     // card configuration

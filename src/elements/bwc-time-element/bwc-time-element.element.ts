@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {CSSResultGroup, LitElement, html} from 'lit';
+import {CSSResultGroup, html, LitElement} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {timeElementStyle} from './bwc-time-element.style';
 
@@ -20,8 +20,6 @@ export class TimeElement extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-
-    console.log(this.hass);
 
     this._interval = window.setInterval(() => {
       this._updateTime();
@@ -43,5 +41,5 @@ export class TimeElement extends LitElement {
     </div>`;
   }
 
-  static override styles: CSSResultGroup = timeElementStyle;
+  static override styles: CSSResultGroup = [timeElementStyle];
 }

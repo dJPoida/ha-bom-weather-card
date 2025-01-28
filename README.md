@@ -14,6 +14,10 @@ This card works best when paired with [Bremor's Bureau of Meteorology Custom Com
 
 - Responds to the `sun.sun` entity for Day / Night mode
 - Responds to the current theme to adjust for dark/light mode theme settings
+- Shows different values depending on the time of day (this is assumed behavior derived from observing the app and not verified as exactly how the BOM app behaves):
+  - 4am -> 12pm (Morning): Min / Max (Last night's min, Today's Max)
+  - 12pm -> 6pm (Afternoon): Max / Overnight Min (Today's Max, Tonight's Min)
+  - 6pm -> 4am (Evening): Overnight Min / Tomorrow's Max (Tonight's Min, Tomorrow's Max)
 
 # Development
 
@@ -149,8 +153,11 @@ This dashboard is initially controlled by Home Assistant. To to take control of 
 # TODO
 
 - Implement Tests
+- Move the TODO list to [Issues](https://github.com/dJPoida/ha-bom-weather-card/issues)
+- Split the README.md into smaller pieces aimed at contextual guidance for installation, development and contribution etc...
 - Find a way to use strict typing for Home Assistant Lit Components and remove the `no-unknown-tag-name` lit-plugin rule.
 - Limit the Entity Picker to only Weather Entities
 - Styles
   - Allow removing the card border
+  - Allow not using full color background
 - [Publish on HACS](https://www.hacs.xyz/docs/publish/)

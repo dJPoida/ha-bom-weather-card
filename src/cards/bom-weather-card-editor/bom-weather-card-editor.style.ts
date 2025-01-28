@@ -4,6 +4,9 @@ export const bomWeatherCardEditorStyle = css`
   .card-config {
     /* Cancels overlapping Margins for HAForm + Card Config options */
     overflow: auto;
+
+    /* Seems to fix a scroll bar issue created by an empty element picker */
+    padding-right: 16px;
   }
   ha-switch {
     padding: 16px 6px;

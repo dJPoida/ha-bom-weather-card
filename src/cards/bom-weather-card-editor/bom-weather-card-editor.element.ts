@@ -8,6 +8,7 @@ import {
 import {DEFAULT_CARD_CONFIG} from '../../constants/default-config.const';
 import {WEATHER_DOMAINS} from '../../constants/domains.const';
 import {isElementHaSwitch} from '../../helpers/is-element-ha-switch.helper';
+import {removeInvalidConfigProperties} from '../../helpers/remove-invalid-config-properties.helper';
 import {toLitElementArray} from '../../helpers/to-lit-element-array.helper';
 import {getLocalizer} from '../../localize/localize';
 import {CardConfig} from '../../types/card-config.type';
@@ -22,9 +23,20 @@ export class BomWeatherCardEditor
   @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
 
   private localize = getLocalizer(this.hass);
+  private _initialized = false;
 
   public setConfig(newConfig: CardConfig): void {
-    this._config = {...this._config, ...newConfig};
+    // On first load, merge the default config with the user provided config
+    if (!this._initialized) {
+      this._config = removeInvalidConfigProperties({
+        ...this._config,
+        ...newConfig,
+      });
+      this._initialized = true;
+    } else {
+      this._config = {...newConfig};
+    }
+
     // Preload the HA Entity Picker
     this.loadEntityPicker();
   }
@@ -87,18 +99,26 @@ export class BomWeatherCardEditor
 
   override render() {
     return html`<div class="card-config">
+      <!-- Title -->
       ${this.textField(CONFIG_PROP.TITLE, this.localize('editor.title'), false)}
+
+      <!-- Show Time -->
       ${this.booleanField(
         CONFIG_PROP.SHOW_TIME,
         this.localize('editor.showTime')
       )}
+
+      <!-- Forecast Entity ID -->
+      ${this.entityPicker(
+        CONFIG_PROP.FORECAST_ENTITY_ID,
+        this.localize('editor.forecastEntity'),
+        true
+      )}
+
+      <!-- Use Default Weather Icons -->
       ${this.booleanField(
         CONFIG_PROP.USE_HA_WEATHER_ICONS,
         this.localize('editor.useDefaultHaWeatherIcons')
-      )}
-      ${this.entityPicker(
-        CONFIG_PROP.FORECAST_ENTITY_ID,
-        this.localize('editor.forecastEntity')
       )}
     </div> `;
   }

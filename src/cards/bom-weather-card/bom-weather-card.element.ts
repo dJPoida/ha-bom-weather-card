@@ -37,6 +37,9 @@ export class BomWeatherCard extends LitElement {
   ): void {
     // TODO: This may get too heavy if hass changes often
     if (changedProperties.has('hass')) {
+      console.log(
+        'hass changed. If this happens too often, consider optimizing'
+      );
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this._darkMode = (this.hass.selectedTheme as any).dark === true;
@@ -59,19 +62,30 @@ export class BomWeatherCard extends LitElement {
         'light-mode': !this._darkMode,
       })}"
     >
+      <!-- Card Header -->
       ${this._config.title
         ? html`<h1 class="card-header">${this._config.title}</h1>`
         : nothing}
-      ${this._config.show_time
-        ? html`<bwc-time-element .hass=${this.hass}></bwc-time-element>`
-        : nothing}
-      ${this._config.forecast_entity_id
-        ? html`<bwc-weather-icon-element
-            .hass=${this.hass}
-            .useHAWeatherIcons=${this._config.use_ha_weather_icons}
-            .weatherEntityId=${this._config.forecast_entity_id}
-          ></bwc-weather-icon-element>`
-        : nothing}
+
+      <!-- First Row -->
+      <div class="container">
+        <!-- Time -->
+        ${this._config.show_time
+          ? html`<bwc-time-element .hass=${this.hass}></bwc-time-element>`
+          : nothing}
+
+        <!-- Temperature -->
+        <bwc-temperature-element .temperature=${20}></bwc-temperature-element>
+
+        <!-- Weather Icon -->
+        ${this._config.forecast_entity_id
+          ? html`<bwc-weather-icon-element
+              .hass=${this.hass}
+              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+              .weatherEntityId=${this._config.forecast_entity_id}
+            ></bwc-weather-icon-element>`
+          : nothing}
+      </div>
     </ha-card> `;
   }
 

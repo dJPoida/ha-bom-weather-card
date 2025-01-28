@@ -1,5 +1,6 @@
 import {version} from '../package.json';
 import './cards/bom-weather-card-editor/bom-weather-card-editor.element';
+import './elements/bwc-temperature-element/bwc-temperature-element.element';
 import './elements/bwc-time-element/bwc-time-element.element';
 import './elements/bwc-weather-icon-element/bwc-weather-icon-element.element';
 

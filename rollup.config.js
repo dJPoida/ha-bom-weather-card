@@ -1,4 +1,5 @@
 import commonjs from '@rollup/plugin-commonjs';
+import eslint from '@rollup/plugin-eslint';
 import json from '@rollup/plugin-json';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
@@ -38,6 +39,11 @@ export default {
       declarationMap: false,
     }),
     json(),
+    eslint({
+      throwOnError: true,
+      throwOnWarning: false,
+      include: ['src/**/*.ts'],
+    }),
     ...(production ? [terser()] : [serve(serveOptions)]),
   ],
   external: ['react', 'react-dom'],
