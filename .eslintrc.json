@@ -28,7 +28,8 @@
       {
         "argsIgnorePattern": "^_"
       }
-    ]
+    ],
+    "no-console": ["warn", {"allow": ["warn", "error", "assert", "info"]}]
   },
   "overrides": [
     {
@@ -38,10 +39,7 @@
       }
     },
     {
-      "files": [
-        "*_test.ts",
-        "**/custom_typings/*.ts"
-      ],
+      "files": ["*_test.ts", "**/custom_typings/*.ts"],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"
       }

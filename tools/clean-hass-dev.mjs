@@ -2,9 +2,9 @@
 // except for those specified in the keepPaths array.
 // Authored by Peter Eldred.
 
-import {fileURLToPath} from 'url';
 import fs from 'fs';
 import path from 'path';
+import {fileURLToPath} from 'url';
 
 const keepPaths = [
   'scripts',
@@ -27,6 +27,6 @@ fs.readdirSync(rootDir).forEach((item) => {
   }
 });
 
-console.log(
+console.info(
   '".devcontainer" cleaned. You can now re-create your container using `hass:start`.'
 );

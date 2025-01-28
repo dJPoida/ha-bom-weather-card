@@ -1,0 +1,20 @@
+{
+  "common": {
+    "version": "Version",
+    "title": "BOM Weather Card",
+    "description": "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
+  },
+  "editor": {
+    "required": "Required",
+    "optional": "Optional",
+    "title": "Title",
+    "showTime": "Show Time",
+    "timeEntity": "Time Entity",
+    "forecastEntity": "Forecast Entity",
+    "showLocation": "Show Location",
+    "useDefaultHaWeatherIcons": "Use Default HA Weather Icons"
+  },
+  "error": {
+    "invalidConfigProperty": "Invalid config property: {0}"
+  }
+}

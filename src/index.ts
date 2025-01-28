@@ -1,20 +1,31 @@
+import {version} from '../package.json';
+import './cards/bom-weather-card-editor/bom-weather-card-editor.element';
+import './elements/bwc-time-element/bwc-time-element.element';
+import './elements/bwc-weather-icon-element/bwc-weather-icon-element.element';
+
+import {BomWeatherCard} from './cards/bom-weather-card/bom-weather-card.element';
+import {CUSTOM_CARD_ID} from './constants/custom-card-id.const';
+import {getLocalizer} from './localize/localize';
+
 declare global {
   interface Window {
     customCards: Array<object>;
   }
 }
 
-import {BomWeatherCard} from './card';
-import {CUSTOM_CARD_ID} from './constants/custom-card-id.const';
-import {BomWeatherCardEditor} from './editor';
-// customElements.define(CUSTOM_CARD_ID, BomWeatherCard);
-customElements.define(CUSTOM_CARD_ID + '-editor', BomWeatherCardEditor);
+const localizer = getLocalizer();
+
+console.info(
+  `%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `,
+  'color: orange; font-weight: bold; background: black',
+  'color: white; font-weight: bold; background: dimgray'
+);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: CUSTOM_CARD_ID,
-  name: 'BOM Weather Card',
-  description:
-    'A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app',
+  name: localizer('common.title'),
+  description: localizer('common.description'),
   prototype: BomWeatherCard,
+  preview: true,
 });

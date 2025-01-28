@@ -21,6 +21,8 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitOverride": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "plugins": [
       {
         "name": "ts-lit-plugin",
@@ -33,6 +35,6 @@
     ],
     "types": ["mocha"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.svg"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,84 @@
+import classnames from 'classnames';
+import {HomeAssistant} from 'custom-card-helpers';
+import {CSSResultGroup, LitElement, html, nothing} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
+import {DEFAULT_CARD_CONFIG} from '../../constants/default-config.const';
+import {isDayMode} from '../../helpers/is-day-mode.helper';
+import {getLocalizer} from '../../localize/localize';
+import {CardConfig} from '../../types/card-config.type';
+import {bomWeatherCardStyle} from './bom-weather-card.style';
+
+@customElement('bom-weather-card')
+export class BomWeatherCard extends LitElement {
+  @property({attribute: false}) public hass!: HomeAssistant;
+
+  @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
+
+  @state() _dayMode: boolean = true;
+  @state() _darkMode: boolean = false;
+
+  private localize = getLocalizer(this.hass);
+
+  static getStubConfig() {
+    // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
+    return {...DEFAULT_CARD_CONFIG};
+  }
+
+  setConfig(config: CardConfig) {
+    if (!config) {
+      throw new Error(this.localize('Invalid configuration'));
+    }
+    this._config = {...this._config, ...config};
+  }
+
+  // Override the updated method
+  protected override updated(
+    changedProperties: Map<string | number | symbol, unknown>
+  ): void {
+    // TODO: This may get too heavy if hass changes often
+    if (changedProperties.has('hass')) {
+      this._dayMode = isDayMode(this.hass);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this._darkMode = (this.hass.selectedTheme as any).dark === true;
+    }
+  }
+
+  // Render card
+  override render() {
+    console.log(
+      this._config.forecast_entity_id
+        ? this.hass.states[this._config.forecast_entity_id]
+        : 'N/A'
+    );
+
+    return html`<ha-card
+      class="${classnames({
+        day: this._dayMode,
+        night: !this._dayMode,
+        'dark-mode': this._darkMode,
+        'light-mode': !this._darkMode,
+      })}"
+    >
+      ${this._config.title
+        ? html`<h1 class="card-header">${this._config.title}</h1>`
+        : nothing}
+      ${this._config.show_time
+        ? html`<bwc-time-element .hass=${this.hass}></bwc-time-element>`
+        : nothing}
+      ${this._config.forecast_entity_id
+        ? html`<bwc-weather-icon-element
+            .hass=${this.hass}
+            .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+            .weatherEntityId=${this._config.forecast_entity_id}
+          ></bwc-weather-icon-element>`
+        : nothing}
+    </ha-card> `;
+  }
+
+  // card configuration
+  static getConfigElement() {
+    return document.createElement('bom-weather-card-editor');
+  }
+
+  static override styles: CSSResultGroup = bomWeatherCardStyle;
+}

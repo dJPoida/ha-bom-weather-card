@@ -1,9 +1,11 @@
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
-import commonjs from '@rollup/plugin-commonjs';
-import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
+import typescript from '@rollup/plugin-typescript';
 import serve from 'rollup-plugin-serve';
+import svg from 'rollup-plugin-svg';
 
 const production = !process.env.ROLLUP_WATCH;
 const serveOptions = {
@@ -27,6 +29,7 @@ export default {
   ],
   plugins: [
     replace({preventAssignment: false, 'Reflect.decorate': 'undefined'}),
+    svg(),
     resolve(),
     commonjs(),
     typescript({
@@ -34,6 +37,7 @@ export default {
       declaration: false,
       declarationMap: false,
     }),
+    json(),
     ...(production ? [terser()] : [serve(serveOptions)]),
   ],
   external: ['react', 'react-dom'],

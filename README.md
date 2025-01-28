@@ -10,6 +10,11 @@ A [Home Assistant](https://www.home-assistant.io) card designed to display weath
 
 This card works best when paired with [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) as a Home Assistant weather provider, but should work with other providers if they follow consistent weather entity naming.
 
+## Behavior
+
+- Responds to the `sun.sun` entity for Day / Night mode
+- Responds to the current theme to adjust for dark/light mode theme settings
+
 # Development
 
 This repo is setup to allow you to develop this card locally using a pre-configured Home Assistant instance in a Docker container.
@@ -26,6 +31,7 @@ This repo is setup to allow you to develop this card locally using a pre-configu
   - [Lit Plugin Extension](https://marketplace.visualstudio.com/items?itemName=runem.lit-plugin)
   - [Prettier Extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
   - [Code Spell Checker](https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker)
+  - [Svg Preview](https://marketplace.visualstudio.com/items?itemName=SimonSiefke.svg-preview)
 
 ## Getting Started
 
@@ -118,7 +124,7 @@ Install [Home Assistant Community Store (HACS)](#home-assistant-community-store-
 
 ### "Custom element doesn't exist: bom-weather-card"
 
-If you receive this message when debugging the card in Home Assistant, it usually means that you haven't started the rollup web server by running
+If you receive this message when debugging the card in Home Assistant, first try refreshing the page. If it persists, it usually means that you haven't started the rollup web server by running `npm run serve`.
 
 ### "The edit UI is not available when in YAML mode."
 
@@ -136,8 +142,15 @@ This dashboard is initially controlled by Home Assistant. To to take control of 
 - [custom-card-helpers Documentation](https://custom-cards.github.io/custom-card-helpers/index.html)
 - [Home Assistant Frontend Component Source](https://github.com/home-assistant/frontend/tree/dev/src/components)
 
+# Acknowledgements
+
+- Thanks to [Bas Milius](https://bas.dev) for the weather icons used in this project. check out his project here: [Meteocons v2.0.0](https://github.com/basmilius/weather-icons/releases/tag/v2.0.0).
+
 # TODO
 
 - Implement Tests
 - Find a way to use strict typing for Home Assistant Lit Components and remove the `no-unknown-tag-name` lit-plugin rule.
+- Limit the Entity Picker to only Weather Entities
+- Styles
+  - Allow removing the card border
 - [Publish on HACS](https://www.hacs.xyz/docs/publish/)

@@ -2,11 +2,14 @@
   "cSpell.words": [
     "automations",
     "bremor",
+    "dimgray",
     "djpoida",
     "eldred",
+    "formfield",
     "hacs",
     "hass",
     "homeassistant",
+    "partlycloudy",
     "rollup"
   ],
   "typescript.tsdk": "node_modules\\typescript\\lib",
