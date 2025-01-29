@@ -194,6 +194,11 @@ const DEFAULT_CARD_CONFIG = {
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
 };
 
+const LANGUAGE = {
+    EN: 'en',
+};
+const DEFAULT_LANGUAGE = LANGUAGE.EN;
+
 const OBSERVATION_ATTRIBUTE = {
     CURRENT_TEMPERATURE: 'temperature',
 };
@@ -204,15 +209,13 @@ const isDayMode = (hass) => {
         : true;
 };
 
-const LANGUAGE = {
-    EN: 'en',
-};
-const DEFAULT_LANGUAGE = LANGUAGE.EN;
-
 var common = {
 	version: "Version",
 	title: "BOM Weather Card",
 	description: "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
+};
+var card = {
+	feelsLike: "Feels like"
 };
 var editor = {
 	forecastEntity: "Forecast Entity",
@@ -227,31 +230,45 @@ var editor = {
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons"
 };
 var error = {
-	invalidConfigProperty: "Invalid config property: {0}"
+	invalidConfigProperty: "Invalid config property: {property}"
 };
 var en = {
 	common: common,
+	card: card,
 	editor: editor,
 	error: error
 };
 
 var en$1 = /*#__PURE__*/Object.freeze({
   __proto__: null,
+  card: card,
   common: common,
   default: en,
   editor: editor,
   error: error
 });
 
+/**
+ * Add new languages here when they are added
+ */
 const languageStrings = {
     en: en$1, // English
 };
-function getLocalizer(hass) {
-    return function localize(string, search = '', replace = '') {
-        const haServerLanguage = hass?.locale?.language;
-        console.assert(haServerLanguage === undefined ||
-            Object.values(LANGUAGE).includes(haServerLanguage), `Invalid language: ${haServerLanguage}`);
-        const lang = haServerLanguage || DEFAULT_LANGUAGE;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function getLocalizer(lang = DEFAULT_LANGUAGE) {
+    /**
+     * Localize a string
+     * @param string - The string to localize
+     * @param substitute - An object containing key value pairs to substitute in the string
+     *
+     * @example
+     * localize('error.invalidConfigProperty', {property: 'title'})
+     *
+     * @returns The localized string
+     */
+    return function localize(string, substitute = {}) {
+        console.assert(lang === undefined || Object.values(LANGUAGE).includes(lang), `Invalid language: ${lang}`);
         let translated;
         try {
             translated = string
@@ -268,8 +285,10 @@ function getLocalizer(hass) {
             translated = string
                 .split('.')
                 .reduce((o, i) => o[i], languageStrings[DEFAULT_LANGUAGE]);
-        if (search !== '' && replace !== '') {
-            translated = translated.replace(search, replace);
+        // Iterate over each of the keyvalue pairs in the substitute object and replace
+        // the key found in the input string with the value
+        for (const [search, replace] of Object.entries(substitute)) {
+            translated = translated.replace(`{${search}}`, replace);
         }
         return translated;
     };
@@ -282,13 +301,13 @@ const containerStyles = i$4 `
     justify-content: space-evenly;
 
     .item {
-      --bwc-item-justify-content: left;
+      --bwc-item-justify-content: flex-start;
       flex: 1;
       display: flex;
       justify-content: var(--bwc-item-justify-content);
 
       &.left {
-        --bwc-item-justify-content: left;
+        --bwc-item-justify-content: flex-start;
       }
 
       &.center {
@@ -296,7 +315,7 @@ const containerStyles = i$4 `
       }
 
       &.right {
-        --bwc-item-justify-content: right;
+        --bwc-item-justify-content: flex-end;
       }
     }
   }
@@ -309,7 +328,8 @@ const cssVariables = i$4 `
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
-    --bwc-time-number-font-size: 3.5rem;
+    --bwc-time-date-time-font-size: 3.5rem;
+    --bwc-time-date-date-font-size: 1rem;
     --bwc-temperature-number-font-size: 3.5rem;
     --bwc-temperature-description-font-size: 1rem;
     --bwc-weather-icon-height: 7rem;
@@ -350,7 +370,8 @@ const debugStyles = i$4 `
     --bwc-debug-element-border: 1px solid red;
     --bwc-debug-container-border: 1px solid orange;
 
-    & > div {
+    & > div,
+    & > div > span {
       box-sizing: border-box;
       border: var(--bwc-debug-element-border);
     }
@@ -368,7 +389,8 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         this._config = { ...DEFAULT_CARD_CONFIG };
         this._dayMode = true;
         this._darkMode = false;
-        this.localize = getLocalizer(this.hass);
+        this.language = DEFAULT_LANGUAGE;
+        this.localize = getLocalizer(this.language);
     }
     static getStubConfig() {
         // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
@@ -387,6 +409,10 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             this._dayMode = isDayMode(this.hass);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this._darkMode = this.hass.themes.darkMode === true;
+            if (this.hass.locale?.language !== this.language) {
+                this.language = this.hass.locale?.language;
+                this.localize = getLocalizer(this.language);
+            }
         }
     }
     // Render card
@@ -410,6 +436,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         ${this._config.observation_entity_id
             ? x `<bwc-temperature-element
               class="item"
+              .localize=${this.localize}
               .temperature=${this.hass.states[this._config.observation_entity_id].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
             ></bwc-temperature-element>`
             : E}
@@ -429,10 +456,10 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
 
         <!-- Time -->
         ${this._config.show_time === true
-            ? x `<bwc-time-element
-              class="item"
+            ? x `<bwc-time-date-element
+              class="item right"
               .hass=${this.hass}
-            ></bwc-time-element>`
+            ></bwc-time-date-element>`
             : E}
       </div>
 
@@ -515,7 +542,11 @@ let temperatureElement = class temperatureElement extends r$2 {
     render() {
         return x `<div class=${classNames('temperature-element')}>
       <span class="number">${this.temperature}&deg;</span>
-      <span class="description">Feels like <strong>18.2&deg;</strong></span>
+      <span class="description"
+        >${this.localize('card.feelsLike')}&nbsp;<strong
+          >${this.temperature}&deg;</strong
+        ></span
+      >
     </div>`;
     }
     static get styles() {
@@ -528,16 +559,18 @@ let temperatureElement = class temperatureElement extends r$2 {
         display: flex;
         flex-direction: column;
 
-        span.number {
+        .number {
           font-size: var(--bwc-temperature-number-font-size);
           line-height: 1em;
           margin-bottom: 0.25em;
           font-weight: 500;
+          width: fit-content;
         }
 
-        span.description {
+        .description {
           font-size: var(--bwc-temperature-description-font-size);
           line-height: 1em;
+          width: fit-content;
         }
       }
     `;
@@ -546,6 +579,12 @@ let temperatureElement = class temperatureElement extends r$2 {
 __decorate([
     n({ attribute: false })
 ], temperatureElement.prototype, "temperature", undefined);
+__decorate([
+    n()
+], temperatureElement.prototype, "weatherEntityId", undefined);
+__decorate([
+    n()
+], temperatureElement.prototype, "localize", undefined);
 temperatureElement = __decorate([
     t$1('bwc-temperature-element')
 ], temperatureElement);
@@ -554,18 +593,20 @@ let TimeElement = class TimeElement extends r$2 {
     constructor() {
         super(...arguments);
         this._currentTime = '';
+        this._currentDate = '';
     }
-    _updateTime() {
+    _update() {
         if (this.hass) {
             this._currentTime = this.hass.states['sensor.time'].state;
+            this._currentDate = this.hass.states['sensor.date'].state;
         }
     }
     connectedCallback() {
         super.connectedCallback();
         this._interval = window.setInterval(() => {
-            this._updateTime();
+            this._update();
         }, 1000);
-        this._updateTime();
+        this._update();
     }
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -574,19 +615,36 @@ let TimeElement = class TimeElement extends r$2 {
         }
     }
     render() {
-        return x `<div class=${classNames('time-element')}>
-      ${this._currentTime}
+        return x `<div class=${classNames('time-date-element')}>
+      <span class="time">${this._currentTime}</span>
+      <span class="date">${this._currentDate}</span>
     </div>`;
     }
     static get styles() {
         return i$4 `
       ${elementStyles}
 
-      .time-element {
+      .time-date-element {
         padding: var(--bwc-global-padding);
-        font-size: var(--bwc-time-number-font-size);
         flex: 1;
-        line-height: 1em;
+        display: flex;
+        align-items: var(--bwc-item-justify-content);
+        flex-direction: column;
+
+        .time {
+          font-size: var(--bwc-time-date-time-font-size);
+          line-height: 1em;
+          margin-bottom: 0.25em;
+          font-weight: 500;
+          width: fit-content;
+        }
+
+        .date {
+          font-size: var(--bwc-time-date-date-font-size);
+          line-height: 1em;
+          word-wrap: break-word;
+          width: fit-content;
+        }
       }
     `;
     }
@@ -597,8 +655,11 @@ __decorate([
 __decorate([
     r()
 ], TimeElement.prototype, "_currentTime", undefined);
+__decorate([
+    r()
+], TimeElement.prototype, "_currentDate", undefined);
 TimeElement = __decorate([
-    t$1('bwc-time-element')
+    t$1('bwc-time-date-element')
 ], TimeElement);
 
 /**
@@ -814,7 +875,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     constructor() {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
-        this.localize = getLocalizer(this.hass);
+        this.localize = getLocalizer(this.hass.locale?.language);
         this._initialized = false;
     }
     setConfig(newConfig) {
@@ -903,7 +964,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         ev.stopPropagation();
         const targetId = target.id;
         if (!(targetId in DEFAULT_CARD_CONFIG)) {
-            throw new Error(this.localize('error.invalidConfigProperty', targetId));
+            throw new Error(this.localize('error.invalidConfigProperty', { property: targetId }));
         }
         const newValue = isElementHaSwitch(target)
             ? target.checked

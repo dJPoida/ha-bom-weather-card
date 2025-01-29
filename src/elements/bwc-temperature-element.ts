@@ -2,15 +2,23 @@ import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {elementStyles} from '../styles/element.style';
+import {Localizer} from '../types/localizer.type';
 
 @customElement('bwc-temperature-element')
 export class temperatureElement extends LitElement {
   @property({attribute: false}) public temperature!: number;
+  @property() public weatherEntityId: string | undefined;
+
+  @property() public localize!: Localizer;
 
   override render() {
     return html`<div class=${classNames('temperature-element')}>
       <span class="number">${this.temperature}&deg;</span>
-      <span class="description">Feels like <strong>18.2&deg;</strong></span>
+      <span class="description"
+        >${this.localize('card.feelsLike')}&nbsp;<strong
+          >${this.temperature}&deg;</strong
+        ></span
+      >
     </div>`;
   }
 
@@ -24,16 +32,18 @@ export class temperatureElement extends LitElement {
         display: flex;
         flex-direction: column;
 
-        span.number {
+        .number {
           font-size: var(--bwc-temperature-number-font-size);
           line-height: 1em;
           margin-bottom: 0.25em;
           font-weight: 500;
+          width: fit-content;
         }
 
-        span.description {
+        .description {
           font-size: var(--bwc-temperature-description-font-size);
           line-height: 1em;
+          width: fit-content;
         }
       }
     `;

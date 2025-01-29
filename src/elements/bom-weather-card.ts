@@ -3,6 +3,7 @@ import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
+import {A_LANGUAGE, DEFAULT_LANGUAGE} from '../constants/languages.const';
 import {OBSERVATION_ATTRIBUTE} from '../constants/observation-attributes.const';
 import {isDayMode} from '../helpers/is-day-mode.helper';
 import {getLocalizer} from '../localize/localize';
@@ -20,7 +21,8 @@ export class BomWeatherCard extends LitElement {
   @state() _dayMode: boolean = true;
   @state() _darkMode: boolean = false;
 
-  private localize = getLocalizer(this.hass);
+  private language: A_LANGUAGE = DEFAULT_LANGUAGE;
+  private localize = getLocalizer(this.language);
 
   static getStubConfig() {
     // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
@@ -43,6 +45,11 @@ export class BomWeatherCard extends LitElement {
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this._darkMode = (this.hass.themes as any).darkMode === true;
+
+      if ((this.hass.locale?.language as A_LANGUAGE) !== this.language) {
+        this.language = this.hass.locale?.language as A_LANGUAGE;
+        this.localize = getLocalizer(this.language);
+      }
     }
   }
 
@@ -67,6 +74,7 @@ export class BomWeatherCard extends LitElement {
         ${this._config.observation_entity_id
           ? html`<bwc-temperature-element
               class="item"
+              .localize=${this.localize}
               .temperature=${this.hass.states[
                 this._config.observation_entity_id
               ].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
@@ -88,10 +96,10 @@ export class BomWeatherCard extends LitElement {
 
         <!-- Time -->
         ${this._config.show_time === true
-          ? html`<bwc-time-element
-              class="item"
+          ? html`<bwc-time-date-element
+              class="item right"
               .hass=${this.hass}
-            ></bwc-time-element>`
+            ></bwc-time-date-element>`
           : nothing}
       </div>
 

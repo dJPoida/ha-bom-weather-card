@@ -7,7 +7,8 @@ export const cssVariables = css`
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
-    --bwc-time-number-font-size: 3.5rem;
+    --bwc-time-date-time-font-size: 3.5rem;
+    --bwc-time-date-date-font-size: 1rem;
     --bwc-temperature-number-font-size: 3.5rem;
     --bwc-temperature-description-font-size: 1rem;
     --bwc-weather-icon-height: 7rem;

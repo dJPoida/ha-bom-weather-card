@@ -5,7 +5,8 @@ export const debugStyles = css`
     --bwc-debug-element-border: 1px solid red;
     --bwc-debug-container-border: 1px solid orange;
 
-    & > div {
+    & > div,
+    & > div > span {
       box-sizing: border-box;
       border: var(--bwc-debug-element-border);
     }

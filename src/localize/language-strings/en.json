@@ -4,6 +4,9 @@
     "title": "BOM Weather Card",
     "description": "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
   },
+  "card": {
+    "feelsLike": "Feels like"
+  },
   "editor": {
     "forecastEntity": "Forecast Entity",
     "observationEntity": "Observation Entity",
@@ -17,6 +20,6 @@
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons"
   },
   "error": {
-    "invalidConfigProperty": "Invalid config property: {0}"
+    "invalidConfigProperty": "Invalid config property: {property}"
   }
 }

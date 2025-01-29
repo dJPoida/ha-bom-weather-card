@@ -7,13 +7,13 @@ export const containerStyles = css`
     justify-content: space-evenly;
 
     .item {
-      --bwc-item-justify-content: left;
+      --bwc-item-justify-content: flex-start;
       flex: 1;
       display: flex;
       justify-content: var(--bwc-item-justify-content);
 
       &.left {
-        --bwc-item-justify-content: left;
+        --bwc-item-justify-content: flex-start;
       }
 
       &.center {
@@ -21,7 +21,7 @@ export const containerStyles = css`
       }
 
       &.right {
-        --bwc-item-justify-content: right;
+        --bwc-item-justify-content: flex-end;
       }
     }
   }

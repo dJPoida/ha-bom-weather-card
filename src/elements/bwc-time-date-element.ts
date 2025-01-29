@@ -4,17 +4,19 @@ import {css, CSSResultGroup, html, LitElement} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {elementStyles} from '../styles/element.style';
 
-@customElement('bwc-time-element')
+@customElement('bwc-time-date-element')
 export class TimeElement extends LitElement {
   @property({attribute: false}) public hass!: HomeAssistant;
 
   private _interval: number | undefined;
 
   @state() _currentTime: string = '';
+  @state() _currentDate: string = '';
 
-  _updateTime() {
+  _update() {
     if (this.hass) {
       this._currentTime = this.hass.states['sensor.time'].state;
+      this._currentDate = this.hass.states['sensor.date'].state;
     }
   }
 
@@ -22,10 +24,10 @@ export class TimeElement extends LitElement {
     super.connectedCallback();
 
     this._interval = window.setInterval(() => {
-      this._updateTime();
+      this._update();
     }, 1000);
 
-    this._updateTime();
+    this._update();
   }
 
   override disconnectedCallback() {
@@ -36,8 +38,9 @@ export class TimeElement extends LitElement {
   }
 
   override render() {
-    return html`<div class=${classNames('time-element')}>
-      ${this._currentTime}
+    return html`<div class=${classNames('time-date-element')}>
+      <span class="time">${this._currentTime}</span>
+      <span class="date">${this._currentDate}</span>
     </div>`;
   }
 
@@ -45,11 +48,27 @@ export class TimeElement extends LitElement {
     return css`
       ${elementStyles}
 
-      .time-element {
+      .time-date-element {
         padding: var(--bwc-global-padding);
-        font-size: var(--bwc-time-number-font-size);
         flex: 1;
-        line-height: 1em;
+        display: flex;
+        align-items: var(--bwc-item-justify-content);
+        flex-direction: column;
+
+        .time {
+          font-size: var(--bwc-time-date-time-font-size);
+          line-height: 1em;
+          margin-bottom: 0.25em;
+          font-weight: 500;
+          width: fit-content;
+        }
+
+        .date {
+          font-size: var(--bwc-time-date-date-font-size);
+          line-height: 1em;
+          word-wrap: break-word;
+          width: fit-content;
+        }
       }
     `;
   }

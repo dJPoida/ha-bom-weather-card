@@ -4,6 +4,7 @@ import {customElement, property, state} from 'lit/decorators.js';
 import {A_CONFIG_PROP, CONFIG_PROP} from '../constants/card-config-prop.const';
 import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
 import {WEATHER_DOMAINS} from '../constants/domains.const';
+import {A_LANGUAGE} from '../constants/languages.const';
 import {isElementHaSwitch} from '../helpers/is-element-ha-switch.helper';
 import {removeInvalidConfigProperties} from '../helpers/remove-invalid-config-properties.helper';
 import {toLitElementArray} from '../helpers/to-lit-element-array.helper';
@@ -18,7 +19,7 @@ export class BomWeatherCardEditor
   @property({attribute: false}) public hass!: HomeAssistant;
   @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
 
-  private localize = getLocalizer(this.hass);
+  private localize = getLocalizer(this.hass.locale?.language as A_LANGUAGE);
   private _initialized = false;
 
   public setConfig(newConfig: CardConfig): void {
@@ -139,7 +140,9 @@ export class BomWeatherCardEditor
     const targetId = target.id as A_CONFIG_PROP;
 
     if (!(targetId in DEFAULT_CARD_CONFIG)) {
-      throw new Error(this.localize('error.invalidConfigProperty', targetId));
+      throw new Error(
+        this.localize('error.invalidConfigProperty', {property: targetId})
+      );
     }
 
     const newValue: string | boolean | undefined = isElementHaSwitch(target)

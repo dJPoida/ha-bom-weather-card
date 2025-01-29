@@ -1,29 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {HomeAssistant} from 'custom-card-helpers';
 import {
   A_LANGUAGE,
   DEFAULT_LANGUAGE,
   LANGUAGE,
 } from '../constants/languages.const';
-import {LanguageStrings} from '../types/language-strings.type';
 
-import * as en from './language-strings/en.json';
+import {Localizer} from '../types/localizer.type';
+import {languageStrings} from './language-strings/_language-strings';
 
-const languageStrings: LanguageStrings = {
-  en, // English
-};
-
-export function getLocalizer(hass?: HomeAssistant) {
-  return function localize(string: string, search = '', replace = ''): string {
-    const haServerLanguage = hass?.locale?.language as A_LANGUAGE;
-
+export function getLocalizer(lang: A_LANGUAGE = DEFAULT_LANGUAGE): Localizer {
+  /**
+   * Localize a string
+   * @param string - The string to localize
+   * @param substitute - An object containing key value pairs to substitute in the string
+   *
+   * @example
+   * localize('error.invalidConfigProperty', {property: 'title'})
+   *
+   * @returns The localized string
+   */
+  return function localize(string: string, substitute = {}): string {
     console.assert(
-      haServerLanguage === undefined ||
-        Object.values(LANGUAGE).includes(haServerLanguage),
-      `Invalid language: ${haServerLanguage}`
+      lang === undefined || Object.values(LANGUAGE).includes(lang),
+      `Invalid language: ${lang}`
     );
-
-    const lang: A_LANGUAGE = haServerLanguage || DEFAULT_LANGUAGE;
 
     let translated: string;
 
@@ -52,8 +52,10 @@ export function getLocalizer(hass?: HomeAssistant) {
           languageStrings[DEFAULT_LANGUAGE] as unknown as Record<string, any>
         );
 
-    if (search !== '' && replace !== '') {
-      translated = translated.replace(search, replace);
+    // Iterate over each of the keyvalue pairs in the substitute object and replace
+    // the key found in the input string with the value
+    for (const [search, replace] of Object.entries(substitute)) {
+      translated = translated.replace(`{${search}}`, replace as string);
     }
     return translated;
   };
