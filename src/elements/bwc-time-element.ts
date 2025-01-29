@@ -1,8 +1,8 @@
 import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {CSSResultGroup, html, LitElement} from 'lit';
+import {css, CSSResultGroup, html, LitElement} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
-import {timeElementStyle} from './bwc-time-element.style';
+import {elementStyles} from '../styles/element.style';
 
 @customElement('bwc-time-element')
 export class TimeElement extends LitElement {
@@ -41,5 +41,16 @@ export class TimeElement extends LitElement {
     </div>`;
   }
 
-  static override styles: CSSResultGroup = [timeElementStyle];
+  static override get styles(): CSSResultGroup {
+    return css`
+      ${elementStyles}
+
+      .time-element {
+        padding: var(--bwc-global-padding);
+        font-size: var(--bwc-time-number-font-size);
+        flex: 1;
+        line-height: 1em;
+      }
+    `;
+  }
 }

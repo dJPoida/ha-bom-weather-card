@@ -275,6 +275,33 @@ function getLocalizer(hass) {
     };
 }
 
+const containerStyles = i$4 `
+  .item-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+
+    .item {
+      --bwc-item-justify-content: left;
+      flex: 1;
+      display: flex;
+      justify-content: var(--bwc-item-justify-content);
+
+      &.left {
+        --bwc-item-justify-content: left;
+      }
+
+      &.center {
+        --bwc-item-justify-content: center;
+      }
+
+      &.right {
+        --bwc-item-justify-content: right;
+      }
+    }
+  }
+`;
+
 const cssVariables = i$4 `
   :host {
     /* Bom Weather Card Custom CSS Variables */
@@ -317,7 +344,8 @@ const cssVariables = i$4 `
     --ha-card-header-color: var(--bwc-text-color);
   }
 `;
-const debugStyle = i$4 `
+
+const debugStyles = i$4 `
   :host {
     --bwc-debug-element-border: 1px solid red;
     --bwc-debug-container-border: 1px solid orange;
@@ -332,67 +360,6 @@ const debugStyle = i$4 `
       border: var(--bwc-debug-container-border);
     }
   }
-`;
-const commonStyle = i$4 `
-  .item-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-evenly;
-
-    .item {
-      --bwc-item-justify-content: left;
-      flex: 1;
-      display: flex;
-      justify-content: var(--bwc-item-justify-content);
-
-      &.left {
-        --bwc-item-justify-content: left;
-      }
-
-      &.center {
-        --bwc-item-justify-content: center;
-      }
-
-      &.right {
-        --bwc-item-justify-content: right;
-      }
-    }
-  }
-`;
-const elementStyle = i$4 `
-  ${cssVariables}
-
-  :host {
-    display: block;
-  }
-
-  /* ${debugStyle} */
-`;
-
-const bomWeatherCardStyle = i$4 `
-  ${cssVariables}
-  ${commonStyle}
-
-  ha-card {
-    color: var(--bwc-text-color);
-
-    /* TODO: make this configurable */
-    background: linear-gradient(
-      to bottom,
-      var(--bwc-background-color-start),
-      var(--bwc-background-color-end)
-    );
-    min-height: var(--bwc-min-height);
-
-    /* TODO: make this configurable */
-    border: none;
-  }
-
-  h1.card-header {
-    padding-bottom: 0;
-  }
-
-  ${debugStyle}
 `;
 
 let BomWeatherCard = class BomWeatherCard extends r$2 {
@@ -488,11 +455,37 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
     </ha-card> `;
     }
     static async getConfigElement() {
-        await Promise.resolve().then(function () { return bomWeatherCardEditor_element; });
+        await Promise.resolve().then(function () { return bomWeatherCardEditor; });
         return document.createElement('bom-weather-card-editor');
     }
+    static get styles() {
+        return i$4 `
+      ${cssVariables}
+      ${containerStyles}
+      
+        ha-card {
+        color: var(--bwc-text-color);
+
+        /* TODO: make this configurable */
+        background: linear-gradient(
+          to bottom,
+          var(--bwc-background-color-start),
+          var(--bwc-background-color-end)
+        );
+        min-height: var(--bwc-min-height);
+
+        /* TODO: make this configurable */
+        border: none;
+      }
+
+      h1.card-header {
+        padding-bottom: 0;
+      }
+
+      ${debugStyles}
+    `;
+    }
 };
-BomWeatherCard.styles = bomWeatherCardStyle;
 __decorate([
     n({ attribute: false })
 ], BomWeatherCard.prototype, "hass", undefined);
@@ -509,27 +502,13 @@ BomWeatherCard = __decorate([
     t$1('bom-weather-card')
 ], BomWeatherCard);
 
-const temperatureElementStyle = i$4 `
-  ${elementStyle}
-
-  .temperature-element {
-    padding: var(--bwc-global-padding);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-
-    span.number {
-      font-size: var(--bwc-temperature-number-font-size);
-      line-height: 1em;
-      margin-bottom: 0.25em;
-      font-weight: 500;
-    }
-
-    span.description {
-      font-size: var(--bwc-temperature-description-font-size);
-      line-height: 1em;
-    }
+const elementStyles = i$4 `
+  :host {
+    display: block;
   }
+
+  /* Comment or uncomment this line to toggle debug styles */
+  ${debugStyles}
 `;
 
 let temperatureElement = class temperatureElement extends r$2 {
@@ -539,25 +518,37 @@ let temperatureElement = class temperatureElement extends r$2 {
       <span class="description">Feels like <strong>18.2&deg;</strong></span>
     </div>`;
     }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+
+      .temperature-element {
+        padding: var(--bwc-global-padding);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+
+        span.number {
+          font-size: var(--bwc-temperature-number-font-size);
+          line-height: 1em;
+          margin-bottom: 0.25em;
+          font-weight: 500;
+        }
+
+        span.description {
+          font-size: var(--bwc-temperature-description-font-size);
+          line-height: 1em;
+        }
+      }
+    `;
+    }
 };
-temperatureElement.styles = [temperatureElementStyle];
 __decorate([
     n({ attribute: false })
 ], temperatureElement.prototype, "temperature", undefined);
 temperatureElement = __decorate([
     t$1('bwc-temperature-element')
 ], temperatureElement);
-
-const timeElementStyle = i$4 `
-  ${elementStyle}
-
-  .time-element {
-    padding: var(--bwc-global-padding);
-    font-size: var(--bwc-time-number-font-size);
-    flex: 1;
-    line-height: 1em;
-  }
-`;
 
 let TimeElement = class TimeElement extends r$2 {
     constructor() {
@@ -587,8 +578,19 @@ let TimeElement = class TimeElement extends r$2 {
       ${this._currentTime}
     </div>`;
     }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+
+      .time-element {
+        padding: var(--bwc-global-padding);
+        font-size: var(--bwc-time-number-font-size);
+        flex: 1;
+        line-height: 1em;
+      }
+    `;
+    }
 };
-TimeElement.styles = [timeElementStyle];
 __decorate([
     n({ attribute: false })
 ], TimeElement.prototype, "hass", undefined);
@@ -663,26 +665,6 @@ const WEATHER_ICON = {
     windy: windy,
 };
 
-const weatherIconElementStyle = i$4 `
-  ${elementStyle}
-
-  .weather-icon-element {
-    /* Override the HA Icon height */
-    --mdc-icon-size: var(--bwc-weather-icon-height);
-
-    flex: 1;
-    display: flex;
-    justify-content: var(--bwc-item-justify-content);
-    align-items: flex-start;
-    padding: 0 var(--bwc-global-padding);
-    font-size: var(--bwc-weather-icon-height);
-
-    svg {
-      height: var(--bwc-weather-icon-height);
-    }
-  }
-`;
-
 let WeatherIconElement = class WeatherIconElement extends r$2 {
     constructor() {
         super(...arguments);
@@ -699,8 +681,28 @@ let WeatherIconElement = class WeatherIconElement extends r$2 {
                 : x `${o(WEATHER_ICON[weatherIconIndex])}`)}
     </div>`;
     }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+
+      .weather-icon-element {
+        /* Override the HA Icon height */
+        --mdc-icon-size: var(--bwc-weather-icon-height);
+
+        flex: 1;
+        display: flex;
+        justify-content: var(--bwc-item-justify-content);
+        align-items: flex-start;
+        padding: 0 var(--bwc-global-padding);
+        font-size: var(--bwc-weather-icon-height);
+
+        svg {
+          height: var(--bwc-weather-icon-height);
+        }
+      }
+    `;
+    }
 };
-WeatherIconElement.styles = [weatherIconElementStyle];
 __decorate([
     n({ attribute: false })
 ], WeatherIconElement.prototype, "hass", undefined);
@@ -807,62 +809,6 @@ const removeInvalidConfigProperties = (config) => {
 function toLitElementArray(arr) {
     return arr.map((e) => `"${e}"`).join(', ');
 }
-
-const bomWeatherCardEditorStyle = i$4 `
-  .card-config {
-    /* Cancels overlapping Margins for HAForm + Card Config options */
-    overflow: auto;
-
-    /* Seems to fix a scroll bar issue created by an empty element picker */
-    padding-right: 16px;
-  }
-  ha-switch {
-    padding: 16px 6px;
-  }
-  /* .side-by-side {
-    display: flex;
-    align-items: flex-end;
-  }
-  .side-by-side > * {
-    flex: 1;
-    padding-right: 8px;
-    padding-inline-end: 8px;
-    padding-inline-start: initial;
-  }
-  .side-by-side > *:last-child {
-    flex: 1;
-    padding-right: 0;
-    padding-inline-end: 0;
-    padding-inline-start: initial;
-  }
-  .suffix {
-    margin: 0 8px;
-  }
-  hui-action-editor,
-  ha-select,
-  ha-textfield,
-  ha-icon-picker {
-    margin-top: 8px;
-    display: block;
-  }
-  ha-expansion-panel {
-    display: block;
-    --expansion-panel-content-padding: 0;
-    border-radius: 6px;
-    --ha-card-border-radius: 6px;
-  }
-  ha-expansion-panel .content {
-    padding: 12px;
-  }
-  ha-expansion-panel > * {
-    margin: 0;
-    font-size: inherit;
-    font-weight: inherit;
-  }
-  ha-expansion-panel ha-svg-icon {
-    color: var(--secondary-text-color);
-  } */
-`;
 
 let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     constructor() {
@@ -996,8 +942,21 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
             // const haEntityPicker = window.customElements.get("ha-entity-picker");
         }
     }
+    static get styles() {
+        return i$4 `
+      .card-config {
+        /* Cancels overlapping Margins for HAForm + Card Config options */
+        overflow: auto;
+
+        /* Seems to fix a scroll bar issue created by an empty element picker */
+        padding-right: 16px;
+      }
+      ha-switch {
+        padding: 16px 6px;
+      }
+    `;
+    }
 };
-BomWeatherCardEditor.styles = bomWeatherCardEditorStyle;
 __decorate([
     n({ attribute: false })
 ], BomWeatherCardEditor.prototype, "hass", undefined);
@@ -1008,7 +967,7 @@ BomWeatherCardEditor = __decorate([
     t$1('bom-weather-card-editor')
 ], BomWeatherCardEditor);
 
-var bomWeatherCardEditor_element = /*#__PURE__*/Object.freeze({
+var bomWeatherCardEditor = /*#__PURE__*/Object.freeze({
   __proto__: null,
   get BomWeatherCardEditor () { return BomWeatherCardEditor; }
 });

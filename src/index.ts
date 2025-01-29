@@ -1,8 +1,8 @@
 import {version} from '../package.json';
-import './cards/bom-weather-card/bom-weather-card.element';
-import './elements/bwc-temperature-element/bwc-temperature-element.element';
-import './elements/bwc-time-element/bwc-time-element.element';
-import './elements/bwc-weather-icon-element/bwc-weather-icon-element.element';
+import './elements/bom-weather-card';
+import './elements/bwc-temperature-element';
+import './elements/bwc-time-element';
+import './elements/bwc-weather-icon-element';
 
 import {getLocalizer} from './localize/localize';
 

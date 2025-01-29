@@ -1,13 +1,15 @@
 import classnames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {CSSResultGroup, LitElement, html, nothing} from 'lit';
+import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
-import {DEFAULT_CARD_CONFIG} from '../../constants/default-config.const';
-import {OBSERVATION_ATTRIBUTE} from '../../constants/observation-attributes.const';
-import {isDayMode} from '../../helpers/is-day-mode.helper';
-import {getLocalizer} from '../../localize/localize';
-import {CardConfig} from '../../types/card-config.type';
-import {bomWeatherCardStyle} from './bom-weather-card.style';
+import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
+import {OBSERVATION_ATTRIBUTE} from '../constants/observation-attributes.const';
+import {isDayMode} from '../helpers/is-day-mode.helper';
+import {getLocalizer} from '../localize/localize';
+import {containerStyles} from '../styles/container.style';
+import {cssVariables} from '../styles/css-variables.style';
+import {debugStyles} from '../styles/debug.style';
+import {CardConfig} from '../types/card-config.type';
 
 @customElement('bom-weather-card')
 export class BomWeatherCard extends LitElement {
@@ -113,11 +115,37 @@ export class BomWeatherCard extends LitElement {
   }
 
   public static async getConfigElement(): Promise<LitElement> {
-    await import('../bom-weather-card-editor/bom-weather-card-editor.element');
+    await import('./bom-weather-card-editor');
     return document.createElement('bom-weather-card-editor');
   }
 
-  static override styles: CSSResultGroup = bomWeatherCardStyle;
+  static override get styles(): CSSResultGroup {
+    return css`
+      ${cssVariables}
+      ${containerStyles}
+      
+        ha-card {
+        color: var(--bwc-text-color);
+
+        /* TODO: make this configurable */
+        background: linear-gradient(
+          to bottom,
+          var(--bwc-background-color-start),
+          var(--bwc-background-color-end)
+        );
+        min-height: var(--bwc-min-height);
+
+        /* TODO: make this configurable */
+        border: none;
+      }
+
+      h1.card-header {
+        padding-bottom: 0;
+      }
+
+      ${debugStyles}
+    `;
+  }
 }
 
 declare global {

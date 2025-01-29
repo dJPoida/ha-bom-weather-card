@@ -1,18 +1,14 @@
 import {HomeAssistant, LovelaceCardEditor} from 'custom-card-helpers';
-import {CSSResultGroup, LitElement, TemplateResult, html} from 'lit';
+import {css, CSSResultGroup, html, LitElement, TemplateResult} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
-import {
-  A_CONFIG_PROP,
-  CONFIG_PROP,
-} from '../../constants/card-config-prop.const';
-import {DEFAULT_CARD_CONFIG} from '../../constants/default-config.const';
-import {WEATHER_DOMAINS} from '../../constants/domains.const';
-import {isElementHaSwitch} from '../../helpers/is-element-ha-switch.helper';
-import {removeInvalidConfigProperties} from '../../helpers/remove-invalid-config-properties.helper';
-import {toLitElementArray} from '../../helpers/to-lit-element-array.helper';
-import {getLocalizer} from '../../localize/localize';
-import {CardConfig} from '../../types/card-config.type';
-import {bomWeatherCardEditorStyle} from './bom-weather-card-editor.style';
+import {A_CONFIG_PROP, CONFIG_PROP} from '../constants/card-config-prop.const';
+import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
+import {WEATHER_DOMAINS} from '../constants/domains.const';
+import {isElementHaSwitch} from '../helpers/is-element-ha-switch.helper';
+import {removeInvalidConfigProperties} from '../helpers/remove-invalid-config-properties.helper';
+import {toLitElementArray} from '../helpers/to-lit-element-array.helper';
+import {getLocalizer} from '../localize/localize';
+import {CardConfig} from '../types/card-config.type';
 
 @customElement('bom-weather-card-editor')
 export class BomWeatherCardEditor
@@ -187,7 +183,20 @@ export class BomWeatherCardEditor
     }
   }
 
-  static override styles: CSSResultGroup = bomWeatherCardEditorStyle;
+  static override get styles(): CSSResultGroup {
+    return css`
+      .card-config {
+        /* Cancels overlapping Margins for HAForm + Card Config options */
+        overflow: auto;
+
+        /* Seems to fix a scroll bar issue created by an empty element picker */
+        padding-right: 16px;
+      }
+      ha-switch {
+        padding: 16px 6px;
+      }
+    `;
+  }
 }
 
 declare global {
