@@ -7,10 +7,13 @@ export const cssVariables = css`
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
-    --bwc-time-font-size: 3.5rem;
-    --bwc-weather-icon-height: 3.5rem;
+    --bwc-time-number-font-size: 3.5rem;
+    --bwc-temperature-number-font-size: 3.5rem;
+    --bwc-temperature-description-font-size: 1rem;
+    --bwc-weather-icon-height: 6rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
+    --bwc-item-container-height: 5rem;
 
     /* Conditional Colors based on Day/Night and Dark/Light Theme */
     /* Light Theme / Day Mode */
@@ -57,6 +60,33 @@ export const debugStyle = css`
   }
 `;
 
+export const commonStyle = css`
+  .item-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+
+    .item {
+      --bwc-item-justify-content: left;
+      flex: 1;
+      display: flex;
+      justify-content: var(--bwc-item-justify-content);
+
+      &.left {
+        --bwc-item-justify-content: left;
+      }
+
+      &.center {
+        --bwc-item-justify-content: center;
+      }
+
+      &.right {
+        --bwc-item-justify-content: right;
+      }
+    }
+  }
+`;
+
 export const elementStyle = css`
   ${cssVariables}
 
@@ -64,5 +94,5 @@ export const elementStyle = css`
     display: block;
   }
 
-  ${debugStyle}
+  /* ${debugStyle} */
 `;

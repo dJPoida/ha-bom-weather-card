@@ -1,8 +1,9 @@
 import {css} from 'lit';
-import {cssVariables, debugStyle} from '../../global.style';
+import {commonStyle, cssVariables, debugStyle} from '../../global.style';
 
 export const bomWeatherCardStyle = css`
   ${cssVariables}
+  ${commonStyle}
 
   ha-card {
     color: var(--bwc-text-color);

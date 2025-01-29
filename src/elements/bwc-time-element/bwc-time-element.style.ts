@@ -6,7 +6,8 @@ export const timeElementStyle = css`
 
   .time-element {
     padding: var(--bwc-global-padding);
-    font-size: var(--bwc-time-font-size);
+    font-size: var(--bwc-time-number-font-size);
+    flex: 1;
     line-height: 1em;
   }
 `;

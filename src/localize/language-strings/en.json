@@ -11,6 +11,7 @@
     "showTime": "Show Time",
     "timeEntity": "Time Entity",
     "forecastEntity": "Forecast Entity",
+    "observationEntity": "Observation Entity",
     "showLocation": "Show Location",
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons"
   },

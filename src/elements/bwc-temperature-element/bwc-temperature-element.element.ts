@@ -9,7 +9,8 @@ export class temperatureElement extends LitElement {
 
   override render() {
     return html`<div class=${classNames('temperature-element')}>
-      ${this.temperature}&deg;
+      <span class="number">${this.temperature}&deg;</span>
+      <span class="description">Feels like <strong>18.2&deg;</strong></span>
     </div>`;
   }
 

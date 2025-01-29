@@ -25,7 +25,9 @@ export default {
     {
       file: 'dist/bom-weather-card.js',
       format: 'esm',
+      name: 'BomWeatherCard',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
   ],
   plugins: [

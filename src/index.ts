@@ -1,11 +1,9 @@
 import {version} from '../package.json';
-import './cards/bom-weather-card-editor/bom-weather-card-editor.element';
+import './cards/bom-weather-card/bom-weather-card.element';
 import './elements/bwc-temperature-element/bwc-temperature-element.element';
 import './elements/bwc-time-element/bwc-time-element.element';
 import './elements/bwc-weather-icon-element/bwc-weather-icon-element.element';
 
-import {BomWeatherCard} from './cards/bom-weather-card/bom-weather-card.element';
-import {CUSTOM_CARD_ID} from './constants/custom-card-id.const';
 import {getLocalizer} from './localize/localize';
 
 declare global {
@@ -24,9 +22,9 @@ console.info(
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: CUSTOM_CARD_ID,
+  type: 'bom-weather-card',
   name: localizer('common.title'),
   description: localizer('common.description'),
-  prototype: BomWeatherCard,
+  documentationURL: 'https://github.com/dJPoida/ha-bom-weather-card',
   preview: true,
 });

@@ -11,6 +11,9 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.TITLE]: string | undefined;
 
   [CONFIG_PROP.SHOW_TIME]: boolean;
+
+  [CONFIG_PROP.OBSERVATION_ENTITY_ID]: string | undefined;
   [CONFIG_PROP.FORECAST_ENTITY_ID]: string | undefined;
+
   [CONFIG_PROP.USE_HA_WEATHER_ICONS]: boolean;
 };

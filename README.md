@@ -154,6 +154,7 @@ This dashboard is initially controlled by Home Assistant. To to take control of 
 
 - Implement Tests
 - Move the TODO list to [Issues](https://github.com/dJPoida/ha-bom-weather-card/issues)
+- If the Observation Entity is not set, find the first weather entity when displaying the preview or on card creation
 - Split the README.md into smaller pieces aimed at contextual guidance for installation, development and contribution etc...
 - Find a way to use strict typing for Home Assistant Lit Components and remove the `no-unknown-tag-name` lit-plugin rule.
 - Limit the Entity Picker to only Weather Entities

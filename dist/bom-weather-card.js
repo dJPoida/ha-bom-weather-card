@@ -28,6 +28,97 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };
 
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+var classnames = {exports: {}};
+
+/*!
+	Copyright (c) 2018 Jed Watson.
+	Licensed under the MIT License (MIT), see
+	http://jedwatson.github.io/classnames
+*/
+
+var hasRequiredClassnames;
+
+function requireClassnames () {
+	if (hasRequiredClassnames) return classnames.exports;
+	hasRequiredClassnames = 1;
+	(function (module) {
+		/* global define */
+
+		(function () {
+
+			var hasOwn = {}.hasOwnProperty;
+
+			function classNames () {
+				var classes = '';
+
+				for (var i = 0; i < arguments.length; i++) {
+					var arg = arguments[i];
+					if (arg) {
+						classes = appendClass(classes, parseValue(arg));
+					}
+				}
+
+				return classes;
+			}
+
+			function parseValue (arg) {
+				if (typeof arg === 'string' || typeof arg === 'number') {
+					return arg;
+				}
+
+				if (typeof arg !== 'object') {
+					return '';
+				}
+
+				if (Array.isArray(arg)) {
+					return classNames.apply(null, arg);
+				}
+
+				if (arg.toString !== Object.prototype.toString && !arg.toString.toString().includes('[native code]')) {
+					return arg.toString();
+				}
+
+				var classes = '';
+
+				for (var key in arg) {
+					if (hasOwn.call(arg, key) && arg[key]) {
+						classes = appendClass(classes, key);
+					}
+				}
+
+				return classes;
+			}
+
+			function appendClass (value, newClass) {
+				if (!newClass) {
+					return value;
+				}
+			
+				if (value) {
+					return value + ' ' + newClass;
+				}
+			
+				return value + newClass;
+			}
+
+			if (module.exports) {
+				classNames.default = classNames;
+				module.exports = classNames;
+			} else {
+				window.classNames = classNames;
+			}
+		}()); 
+	} (classnames));
+	return classnames.exports;
+}
+
+var classnamesExports = requireClassnames();
+var classNames = /*@__PURE__*/getDefaultExportFromCjs(classnamesExports);
+
 /**
  * @license
  * Copyright 2019 Google LLC
@@ -76,11 +167,10 @@ const t$1=t=>(e,o)=>{ undefined!==o?o.addInitializer((()=>{customElements.define
 const CONFIG_PROP = {
     TITLE: 'title',
     SHOW_TIME: 'show_time',
-    USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
+    OBSERVATION_ENTITY_ID: 'observation_entity_id',
     FORECAST_ENTITY_ID: 'forecast_entity_id',
+    USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
 };
-
-const CUSTOM_CARD_ID = 'bom-weather-card';
 
 /**
  * Default card configuration
@@ -92,14 +182,525 @@ const CUSTOM_CARD_ID = 'bom-weather-card';
  * Be sure to update this object when adding new configuration properties
  */
 const DEFAULT_CARD_CONFIG = {
-    type: CUSTOM_CARD_ID,
-    index: 0,
-    view_index: 0,
+    type: 'custom:bom-weather-card',
+    index: undefined,
+    view_index: undefined,
     [CONFIG_PROP.TITLE]: undefined,
-    [CONFIG_PROP.SHOW_TIME]: true,
+    [CONFIG_PROP.SHOW_TIME]: false,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: false,
-    [CONFIG_PROP.FORECAST_ENTITY_ID]: '',
+    [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
+    [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
 };
+
+const OBSERVATION_ATTRIBUTE = {
+    CURRENT_TEMPERATURE: 'temperature',
+};
+
+const isDayMode = (hass) => {
+    return hass?.states['sun.sun']
+        ? hass.states['sun.sun'].state === 'above_horizon'
+        : true;
+};
+
+const LANGUAGE = {
+    EN: 'en',
+};
+const DEFAULT_LANGUAGE = LANGUAGE.EN;
+
+var common = {
+	version: "Version",
+	title: "BOM Weather Card",
+	description: "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
+};
+var editor = {
+	required: "Required",
+	optional: "Optional",
+	title: "Title",
+	showTime: "Show Time",
+	timeEntity: "Time Entity",
+	forecastEntity: "Forecast Entity",
+	observationEntity: "Observation Entity",
+	showLocation: "Show Location",
+	useDefaultHaWeatherIcons: "Use Default HA Weather Icons"
+};
+var error = {
+	invalidConfigProperty: "Invalid config property: {0}"
+};
+var en = {
+	common: common,
+	editor: editor,
+	error: error
+};
+
+var en$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  common: common,
+  default: en,
+  editor: editor,
+  error: error
+});
+
+const languageStrings = {
+    en: en$1, // English
+};
+function getLocalizer(hass) {
+    return function localize(string, search = '', replace = '') {
+        const haServerLanguage = hass?.locale?.language;
+        console.assert(haServerLanguage === undefined ||
+            Object.values(LANGUAGE).includes(haServerLanguage), `Invalid language: ${haServerLanguage}`);
+        const lang = haServerLanguage || DEFAULT_LANGUAGE;
+        let translated;
+        try {
+            translated = string
+                .split('.')
+                .reduce((o, i) => o[i], languageStrings[lang]);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (e) {
+            translated = string
+                .split('.')
+                .reduce((o, i) => o[i], languageStrings[DEFAULT_LANGUAGE]);
+        }
+        if (translated === undefined)
+            translated = string
+                .split('.')
+                .reduce((o, i) => o[i], languageStrings[DEFAULT_LANGUAGE]);
+        if (search !== '' && replace !== '') {
+            translated = translated.replace(search, replace);
+        }
+        return translated;
+    };
+}
+
+const cssVariables = i$4 `
+  :host {
+    /* Bom Weather Card Custom CSS Variables */
+    --bwc-background-color-day-start: #63b0ff;
+    --bwc-background-color-day-end: #c4e1ff;
+    --bwc-background-color-night-start: #001d3b;
+    --bwc-background-color-night-end: #013565;
+    --bwc-time-number-font-size: 3.5rem;
+    --bwc-temperature-number-font-size: 3.5rem;
+    --bwc-temperature-description-font-size: 1rem;
+    --bwc-weather-icon-height: 6rem;
+    --bwc-min-height: 10rem;
+    --bwc-global-padding: 16px;
+    --bwc-item-container-height: 5rem;
+
+    /* Conditional Colors based on Day/Night and Dark/Light Theme */
+    /* Light Theme / Day Mode */
+    --bwc-text-color: var(--text-light-primary-color);
+    --bwc-background-color-start: var(--bwc-background-color-day-start);
+    --bwc-background-color-end: var(--bwc-background-color-day-end);
+
+    /* Light Theme / Night Mode */
+    &.night {
+      --bwc-text-color: var(--text-primary-color);
+      --bwc-background-color-start: var(--bwc-background-color-night-start);
+      --bwc-background-color-end: var(--bwc-background-color-night-end);
+    }
+
+    /* Dark Theme / Day Mode */
+    &.dark-mode {
+      color: var(--text-light-primary-color);
+
+      /* Dark Theme / Night Mode */
+      &.night {
+        color: var(--text-primary-color);
+      }
+    }
+
+    /* Home Assistant Theme Overrides */
+    --ha-card-header-color: var(--bwc-text-color);
+  }
+`;
+const debugStyle = i$4 `
+  :host {
+    --bwc-debug-element-border: 1px solid red;
+    --bwc-debug-container-border: 1px solid orange;
+
+    & > div {
+      box-sizing: border-box;
+      border: var(--bwc-debug-element-border);
+    }
+
+    .container {
+      box-sizing: border-box;
+      border: var(--bwc-debug-container-border);
+    }
+  }
+`;
+const commonStyle = i$4 `
+  .item-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+
+    .item {
+      --bwc-item-justify-content: left;
+      flex: 1;
+      display: flex;
+      justify-content: var(--bwc-item-justify-content);
+
+      &.left {
+        --bwc-item-justify-content: left;
+      }
+
+      &.center {
+        --bwc-item-justify-content: center;
+      }
+
+      &.right {
+        --bwc-item-justify-content: right;
+      }
+    }
+  }
+`;
+const elementStyle = i$4 `
+  ${cssVariables}
+
+  :host {
+    display: block;
+  }
+
+  /* ${debugStyle} */
+`;
+
+const bomWeatherCardStyle = i$4 `
+  ${cssVariables}
+  ${commonStyle}
+
+  ha-card {
+    color: var(--bwc-text-color);
+
+    /* TODO: make this configurable */
+    background: linear-gradient(
+      to bottom,
+      var(--bwc-background-color-start),
+      var(--bwc-background-color-end)
+    );
+    min-height: var(--bwc-min-height);
+
+    /* TODO: make this configurable */
+    border: none;
+  }
+
+  h1.card-header {
+    padding-bottom: 0;
+  }
+
+  ${debugStyle}
+`;
+
+let BomWeatherCard = class BomWeatherCard extends r$2 {
+    constructor() {
+        super(...arguments);
+        this._config = { ...DEFAULT_CARD_CONFIG };
+        this._dayMode = true;
+        this._darkMode = false;
+        this.localize = getLocalizer(this.hass);
+    }
+    static getStubConfig() {
+        // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
+        return { ...DEFAULT_CARD_CONFIG };
+    }
+    setConfig(config) {
+        if (!config) {
+            throw new Error(this.localize('error.invalidConfigProperty'));
+        }
+        this._config = { ...this._config, ...config };
+    }
+    // Override the updated method
+    updated(changedProperties) {
+        // TODO: This may get too heavy if hass changes often
+        if (changedProperties.has('hass')) {
+            this._dayMode = isDayMode(this.hass);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this._darkMode = this.hass.themes.darkMode === true;
+        }
+    }
+    // Render card
+    render() {
+        return x `<ha-card
+      class="${classNames({
+            day: this._dayMode,
+            night: !this._dayMode,
+            'dark-mode': this._darkMode,
+            'light-mode': !this._darkMode,
+        })}"
+    >
+      <!-- Card Header -->
+      ${this._config.title
+            ? x `<h1 class="card-header">${this._config.title}</h1>`
+            : E}
+
+      <!-- First Row -->
+      <div class="item-container">
+        <!-- Time -->
+        ${this._config.show_time
+            ? x `<bwc-time-element
+              class="item"
+              .hass=${this.hass}
+            ></bwc-time-element>`
+            : E}
+
+        <!-- Current Temperature (conditional on observation_entity_id) -->
+        ${this._config.observation_entity_id
+            ? x `<bwc-temperature-element
+              class="item"
+              .temperature=${this.hass.states[this._config.observation_entity_id].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
+            ></bwc-temperature-element>`
+            : E}
+
+        <!-- Weather Icon (conditional on forecast_entity_id) -->
+        ${this._config.observation_entity_id
+            ? x `<bwc-weather-icon-element
+              class=${classNames('item', 'right')}
+              .hass=${this.hass}
+              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+              .weatherEntityId=${this._config.observation_entity_id}
+            ></bwc-weather-icon-element>`
+            : E}
+      </div>
+    </ha-card> `;
+    }
+    static async getConfigElement() {
+        await Promise.resolve().then(function () { return bomWeatherCardEditor_element; });
+        return document.createElement('bom-weather-card-editor');
+    }
+};
+BomWeatherCard.styles = bomWeatherCardStyle;
+__decorate([
+    n({ attribute: false })
+], BomWeatherCard.prototype, "hass", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "_config", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "_dayMode", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "_darkMode", undefined);
+BomWeatherCard = __decorate([
+    t$1('bom-weather-card')
+], BomWeatherCard);
+
+const temperatureElementStyle = i$4 `
+  ${elementStyle}
+
+  .temperature-element {
+    padding: var(--bwc-global-padding);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    span.number {
+      font-size: var(--bwc-temperature-number-font-size);
+      line-height: 1em;
+      margin-bottom: 0.25em;
+      font-weight: 500;
+    }
+
+    span.description {
+      font-size: var(--bwc-temperature-description-font-size);
+      line-height: 1em;
+    }
+  }
+`;
+
+let temperatureElement = class temperatureElement extends r$2 {
+    render() {
+        return x `<div class=${classNames('temperature-element')}>
+      <span class="number">${this.temperature}&deg;</span>
+      <span class="description">Feels like <strong>18.2&deg;</strong></span>
+    </div>`;
+    }
+};
+temperatureElement.styles = [temperatureElementStyle];
+__decorate([
+    n({ attribute: false })
+], temperatureElement.prototype, "temperature", undefined);
+temperatureElement = __decorate([
+    t$1('bwc-temperature-element')
+], temperatureElement);
+
+const timeElementStyle = i$4 `
+  ${elementStyle}
+
+  .time-element {
+    padding: var(--bwc-global-padding);
+    font-size: var(--bwc-time-number-font-size);
+    flex: 1;
+    line-height: 1em;
+  }
+`;
+
+let TimeElement = class TimeElement extends r$2 {
+    constructor() {
+        super(...arguments);
+        this._currentTime = '';
+    }
+    _updateTime() {
+        if (this.hass) {
+            this._currentTime = this.hass.states['sensor.time'].state;
+        }
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this._interval = window.setInterval(() => {
+            this._updateTime();
+        }, 1000);
+        this._updateTime();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this._interval) {
+            clearInterval(this._interval);
+        }
+    }
+    render() {
+        return x `<div class=${classNames('time-element')}>
+      ${this._currentTime}
+    </div>`;
+    }
+};
+TimeElement.styles = [timeElementStyle];
+__decorate([
+    n({ attribute: false })
+], TimeElement.prototype, "hass", undefined);
+__decorate([
+    r()
+], TimeElement.prototype, "_currentTime", undefined);
+TimeElement = __decorate([
+    t$1('bwc-time-element')
+], TimeElement);
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */class e extends i{constructor(i){if(super(i),this.it=E,i.type!==t.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=undefined,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o=e$1(e);
+
+var clearNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.66 36.2a16.66 16.66 0 01-16.78-16.55 16.29 16.29 0 01.55-4.15A16.56 16.56 0 1048.5 36.1c-.61.06-1.22.1-1.84.1z\"/><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-5 32 32;15 32 32;-5 32 32\"/></g></svg>";
+
+var cloudy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/><animateTransform attributeName=\"transform\" dur=\"7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-3 0; 3 0; -3 0\"/></g></svg>";
+
+var exceptional = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#d1d5db\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43 32a11 11 0 11-11-11 11 11 0 0111 11zM25 14.61l-.48 1a33.68 33.68 0 00-3.42 17.82h0M39 49.39l.48-1a33.68 33.68 0 003.42-17.82h0\"/><animateTransform attributeName=\"transform\" dur=\"1s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"360 32 32; 0 32 32\"/></g></svg>";
+
+var fog = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 32h30\"/><animateTransform attributeName=\"transform\" begin=\"0s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-4 0; 4 0; -4 0\"/></g><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 39h30\"/><animateTransform attributeName=\"transform\" begin=\"-2s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-3 0; 3 0; -3 0\"/></g><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 25h30\"/><animateTransform attributeName=\"transform\" begin=\"-4s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-4 0; 4 0; -4 0\"/></g></svg>";
+
+var hail = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"24\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g><g><circle cx=\"31\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g></svg>";
+
+var lightningRainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1;1;1;1;1;1;0.1;1;0.1;1;1;0.1;1;0.1;1\"/></g></svg>";
+
+var lightning = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1;1;1;1;1;1;0.1;1;0.1;1;1;0.1;1;0.1;1\"/></g></svg>";
+
+var partlyCloudyNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M29.33 26.68a10.61 10.61 0 01-10.68-10.54A10.5 10.5 0 0119 13.5a10.54 10.54 0 1011.5 13.11 11.48 11.48 0 01-1.17.07z\"/><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-10 19.22 24.293;10 19.22 24.293;-10 19.22 24.293\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
+
+var partlyCloudy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M23.5 24a4.5 4.5 0 11-4.5-4.5 4.49 4.49 0 014.5 4.5zM19 15.67V12.5m0 23v-3.17m5.89-14.22l2.24-2.24M10.87 32.13l2.24-2.24m0-11.78l-2.24-2.24m16.26 16.26l-2.24-2.24M7.5 24h3.17m19.83 0h-3.17\"/><animateTransform attributeName=\"transform\" dur=\"45s\" from=\"0 19 24\" repeatCount=\"indefinite\" to=\"360 19 24\" type=\"rotate\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
+
+var pouring = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g></svg>";
+
+var rainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" begin=\"-0.5s\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.5s\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" begin=\"-1s\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g></svg>";
+
+var snowyRainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"31\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M33.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M31 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-1 -6; 1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 31 45; 360 31 45\"/><animate attributeName=\"opacity\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 24 45; 360 24 45\"/><animate attributeName=\"opacity\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 38 45; 360 38 45\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g></svg>";
+
+var snowy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"31\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M33.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M31 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-1 -6; 1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 31 45; 360 31 45\"/><animate attributeName=\"opacity\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 24 45; 360 24 45\"/><animate attributeName=\"opacity\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 38 45; 360 38 45\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g></svg>";
+
+var sunny = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M42.5 32A10.5 10.5 0 1132 21.5 10.5 10.5 0 0142.5 32zM32 15.71V9.5m0 45v-6.21m11.52-27.81l4.39-4.39M16.09 47.91l4.39-4.39m0-23l-4.39-4.39m31.82 31.78l-4.39-4.39M15.71 32H9.5m45 0h-6.21\"/><animateTransform attributeName=\"transform\" dur=\"45s\" from=\"0 32 32\" repeatCount=\"indefinite\" to=\"360 32 32\" type=\"rotate\"/></g></svg>";
+
+var windyVariant = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"><animate attributeName=\"stroke-dashoffset\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-57; 57\"/></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"><animate attributeName=\"stroke-dashoffset\" begin=\"-1.5s\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-39; 39\"/></path></svg>";
+
+var windy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"><animate attributeName=\"stroke-dashoffset\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-57; 57\"/></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"><animate attributeName=\"stroke-dashoffset\" begin=\"-1.5s\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-39; 39\"/></path></svg>";
+
+const WEATHER_ICON = {
+    'clear-night': clearNight,
+    cloudy: cloudy,
+    exceptional: exceptional,
+    fog: fog,
+    hail: hail,
+    'lightning-rainy': lightningRainy,
+    lightning: lightning,
+    partlycloudy: partlyCloudy,
+    'partlycloudy-night': partlyCloudyNight,
+    pouring: pouring,
+    rainy: rainy,
+    'snowy-rainy': snowyRainy,
+    snowy: snowy,
+    sunny: sunny,
+    'windy-variant': windyVariant,
+    windy: windy,
+};
+
+const weatherIconElementStyle = i$4 `
+  ${elementStyle}
+
+  .weather-icon-element {
+    /* Override the HA Icon height */
+    --mdc-icon-size: var(--bwc-weather-icon-height);
+
+    flex: 1;
+    display: flex;
+    justify-content: var(--bwc-item-justify-content);
+    align-items: center;
+    padding: 0 var(--bwc-global-padding);
+    font-size: var(--bwc-weather-icon-height);
+
+    svg {
+      height: var(--bwc-weather-icon-height);
+    }
+  }
+`;
+
+let WeatherIconElement = class WeatherIconElement extends r$2 {
+    constructor() {
+        super(...arguments);
+        this.useHAWeatherIcons = false;
+    }
+    render() {
+        const weatherIconIndex = this.weatherEntityId
+            ? this.hass.states[this.weatherEntityId].state
+            : undefined;
+        return x `<div class=${classNames('weather-icon-element')}>
+      ${weatherIconIndex &&
+            (this.useHAWeatherIcons
+                ? x `<ha-icon icon="mdi:weather-${weatherIconIndex}"></ha-icon>`
+                : x `${o(WEATHER_ICON[weatherIconIndex])}`)}
+    </div>`;
+    }
+};
+WeatherIconElement.styles = [weatherIconElementStyle];
+__decorate([
+    n({ attribute: false })
+], WeatherIconElement.prototype, "hass", undefined);
+__decorate([
+    n()
+], WeatherIconElement.prototype, "weatherEntityId", undefined);
+__decorate([
+    n({ type: Boolean })
+], WeatherIconElement.prototype, "useHAWeatherIcons", undefined);
+WeatherIconElement = __decorate([
+    t$1('bwc-weather-icon-element')
+], WeatherIconElement);
+
+const localizer = getLocalizer();
+console.info(`%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `, 'color: orange; font-weight: bold; background: black', 'color: white; font-weight: bold; background: dimgray');
+window.customCards = window.customCards || [];
+window.customCards.push({
+    type: 'bom-weather-card',
+    name: localizer('common.title'),
+    description: localizer('common.description'),
+    documentationURL: 'https://github.com/dJPoida/ha-bom-weather-card',
+    preview: true,
+});
 
 /**
  * List of all domains in Home Assistant as of version 20250106.0
@@ -167,87 +768,21 @@ const isElementHaSwitch = (targetElement) => {
  * stored at an earlier time when the schema was different).
  */
 const removeInvalidConfigProperties = (config) => {
-    const validKeys = new Set(Object.keys(DEFAULT_CARD_CONFIG));
-    return Object.keys(config).reduce((acc, key) => {
-        if (validKeys.has(key)) {
-            acc[key] = config[key];
-        }
-        return acc;
-    }, {});
+    return config;
+    // const validKeys = new Set<A_CONFIG_PROP>(
+    //   Object.keys(DEFAULT_CARD_CONFIG) as A_CONFIG_PROP[]
+    // );
+    // return Object.keys(config).reduce((acc, key) => {
+    //   if (validKeys.has(key as A_CONFIG_PROP)) {
+    //     (acc as Record<string, unknown>)[key] = config[key as A_CONFIG_PROP];
+    //   }
+    //   return acc;
+    // }, {} as CardConfig);
 };
 
 // Take an array of strings and return a string with each element separated by a comma and wrapped in double quotes
 function toLitElementArray(arr) {
     return arr.map((e) => `"${e}"`).join(', ');
-}
-
-const LANGUAGE = {
-    EN: 'en',
-};
-const DEFAULT_LANGUAGE = LANGUAGE.EN;
-
-var common = {
-	version: "Version",
-	title: "BOM Weather Card",
-	description: "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
-};
-var editor = {
-	required: "Required",
-	optional: "Optional",
-	title: "Title",
-	showTime: "Show Time",
-	timeEntity: "Time Entity",
-	forecastEntity: "Forecast Entity",
-	showLocation: "Show Location",
-	useDefaultHaWeatherIcons: "Use Default HA Weather Icons"
-};
-var error = {
-	invalidConfigProperty: "Invalid config property: {0}"
-};
-var en = {
-	common: common,
-	editor: editor,
-	error: error
-};
-
-var en$1 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  common: common,
-  default: en,
-  editor: editor,
-  error: error
-});
-
-const languageStrings = {
-    en: en$1, // English
-};
-function getLocalizer(hass) {
-    return function localize(string, search = '', replace = '') {
-        const haServerLanguage = hass?.locale?.language;
-        console.assert(haServerLanguage === undefined ||
-            Object.values(LANGUAGE).includes(haServerLanguage), `Invalid language: ${haServerLanguage}`);
-        const lang = haServerLanguage || DEFAULT_LANGUAGE;
-        let translated;
-        try {
-            translated = string
-                .split('.')
-                .reduce((o, i) => o[i], languageStrings[lang]);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        }
-        catch (e) {
-            translated = string
-                .split('.')
-                .reduce((o, i) => o[i], languageStrings[DEFAULT_LANGUAGE]);
-        }
-        if (translated === undefined)
-            translated = string
-                .split('.')
-                .reduce((o, i) => o[i], languageStrings[DEFAULT_LANGUAGE]);
-        if (search !== '' && replace !== '') {
-            translated = translated.replace(search, replace);
-        }
-        return translated;
-    };
 }
 
 const bomWeatherCardEditorStyle = i$4 `
@@ -381,6 +916,9 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
       <!-- Show Time -->
       ${this.booleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
 
+      <!-- Observation Entity ID -->
+      ${this.entityPicker(CONFIG_PROP.OBSERVATION_ENTITY_ID, this.localize('editor.observationEntity'), true)}
+
       <!-- Forecast Entity ID -->
       ${this.entityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'), true)}
 
@@ -392,7 +930,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         const target = ev.target;
         ev.stopPropagation();
         const targetId = target.id;
-        if (!(targetId in this._config)) {
+        if (!(targetId in DEFAULT_CARD_CONFIG)) {
             throw new Error(this.localize('error.invalidConfigProperty', targetId));
         }
         const newValue = isElementHaSwitch(target)
@@ -444,477 +982,8 @@ BomWeatherCardEditor = __decorate([
     t$1('bom-weather-card-editor')
 ], BomWeatherCardEditor);
 
-function getDefaultExportFromCjs (x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
-}
-
-var classnames$1 = {exports: {}};
-
-/*!
-	Copyright (c) 2018 Jed Watson.
-	Licensed under the MIT License (MIT), see
-	http://jedwatson.github.io/classnames
-*/
-
-var hasRequiredClassnames;
-
-function requireClassnames () {
-	if (hasRequiredClassnames) return classnames$1.exports;
-	hasRequiredClassnames = 1;
-	(function (module) {
-		/* global define */
-
-		(function () {
-
-			var hasOwn = {}.hasOwnProperty;
-
-			function classNames () {
-				var classes = '';
-
-				for (var i = 0; i < arguments.length; i++) {
-					var arg = arguments[i];
-					if (arg) {
-						classes = appendClass(classes, parseValue(arg));
-					}
-				}
-
-				return classes;
-			}
-
-			function parseValue (arg) {
-				if (typeof arg === 'string' || typeof arg === 'number') {
-					return arg;
-				}
-
-				if (typeof arg !== 'object') {
-					return '';
-				}
-
-				if (Array.isArray(arg)) {
-					return classNames.apply(null, arg);
-				}
-
-				if (arg.toString !== Object.prototype.toString && !arg.toString.toString().includes('[native code]')) {
-					return arg.toString();
-				}
-
-				var classes = '';
-
-				for (var key in arg) {
-					if (hasOwn.call(arg, key) && arg[key]) {
-						classes = appendClass(classes, key);
-					}
-				}
-
-				return classes;
-			}
-
-			function appendClass (value, newClass) {
-				if (!newClass) {
-					return value;
-				}
-			
-				if (value) {
-					return value + ' ' + newClass;
-				}
-			
-				return value + newClass;
-			}
-
-			if (module.exports) {
-				classNames.default = classNames;
-				module.exports = classNames;
-			} else {
-				window.classNames = classNames;
-			}
-		}()); 
-	} (classnames$1));
-	return classnames$1.exports;
-}
-
-var classnamesExports = requireClassnames();
-var classnames = /*@__PURE__*/getDefaultExportFromCjs(classnamesExports);
-
-const cssVariables = i$4 `
-  :host {
-    /* Bom Weather Card Custom CSS Variables */
-    --bwc-background-color-day-start: #63b0ff;
-    --bwc-background-color-day-end: #c4e1ff;
-    --bwc-background-color-night-start: #001d3b;
-    --bwc-background-color-night-end: #013565;
-    --bwc-time-font-size: 3.5rem;
-    --bwc-weather-icon-height: 3.5rem;
-    --bwc-min-height: 10rem;
-    --bwc-global-padding: 16px;
-
-    /* Conditional Colors based on Day/Night and Dark/Light Theme */
-    /* Light Theme / Day Mode */
-    --bwc-text-color: var(--text-light-primary-color);
-    --bwc-background-color-start: var(--bwc-background-color-day-start);
-    --bwc-background-color-end: var(--bwc-background-color-day-end);
-
-    /* Light Theme / Night Mode */
-    &.night {
-      --bwc-text-color: var(--text-primary-color);
-      --bwc-background-color-start: var(--bwc-background-color-night-start);
-      --bwc-background-color-end: var(--bwc-background-color-night-end);
-    }
-
-    /* Dark Theme / Day Mode */
-    &.dark-mode {
-      color: var(--text-light-primary-color);
-
-      /* Dark Theme / Night Mode */
-      &.night {
-        color: var(--text-primary-color);
-      }
-    }
-
-    /* Home Assistant Theme Overrides */
-    --ha-card-header-color: var(--bwc-text-color);
-  }
-`;
-const debugStyle = i$4 `
-  :host {
-    --bwc-debug-element-border: 1px solid red;
-    --bwc-debug-container-border: 1px solid orange;
-
-    & > div {
-      box-sizing: border-box;
-      border: var(--bwc-debug-element-border);
-    }
-
-    .container {
-      box-sizing: border-box;
-      border: var(--bwc-debug-container-border);
-    }
-  }
-`;
-const elementStyle = i$4 `
-  ${cssVariables}
-
-  :host {
-    display: block;
-  }
-
-  ${debugStyle}
-`;
-
-const temperatureElementStyle = i$4 `
-  ${elementStyle}
-
-  .temperature-element {
-    padding: var(--bwc-global-padding);
-    font-size: var(--bwc-time-font-size);
-    line-height: 1em;
-  }
-`;
-
-let temperatureElement = class temperatureElement extends r$2 {
-    render() {
-        return x `<div class=${classnames('temperature-element')}>
-      ${this.temperature}&deg;
-    </div>`;
-    }
-};
-temperatureElement.styles = [temperatureElementStyle];
-__decorate([
-    n({ attribute: false })
-], temperatureElement.prototype, "temperature", undefined);
-temperatureElement = __decorate([
-    t$1('bwc-temperature-element')
-], temperatureElement);
-
-const timeElementStyle = i$4 `
-  ${elementStyle}
-
-  .time-element {
-    padding: var(--bwc-global-padding);
-    font-size: var(--bwc-time-font-size);
-    line-height: 1em;
-  }
-`;
-
-let TimeElement = class TimeElement extends r$2 {
-    constructor() {
-        super(...arguments);
-        this._currentTime = '';
-    }
-    _updateTime() {
-        if (this.hass) {
-            this._currentTime = this.hass.states['sensor.time'].state;
-        }
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this._interval = window.setInterval(() => {
-            this._updateTime();
-        }, 1000);
-        this._updateTime();
-    }
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        if (this._interval) {
-            clearInterval(this._interval);
-        }
-    }
-    render() {
-        return x `<div class=${classnames('time-element')}>
-      ${this._currentTime}
-    </div>`;
-    }
-};
-TimeElement.styles = [timeElementStyle];
-__decorate([
-    n({ attribute: false })
-], TimeElement.prototype, "hass", undefined);
-__decorate([
-    r()
-], TimeElement.prototype, "_currentTime", undefined);
-TimeElement = __decorate([
-    t$1('bwc-time-element')
-], TimeElement);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */class e extends i{constructor(i){if(super(i),this.it=E,i.type!==t.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=undefined,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o=e$1(e);
-
-var clearNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.66 36.2a16.66 16.66 0 01-16.78-16.55 16.29 16.29 0 01.55-4.15A16.56 16.56 0 1048.5 36.1c-.61.06-1.22.1-1.84.1z\"/><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-5 32 32;15 32 32;-5 32 32\"/></g></svg>";
-
-var cloudy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/><animateTransform attributeName=\"transform\" dur=\"7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-3 0; 3 0; -3 0\"/></g></svg>";
-
-var exceptional = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#d1d5db\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43 32a11 11 0 11-11-11 11 11 0 0111 11zM25 14.61l-.48 1a33.68 33.68 0 00-3.42 17.82h0M39 49.39l.48-1a33.68 33.68 0 003.42-17.82h0\"/><animateTransform attributeName=\"transform\" dur=\"1s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"360 32 32; 0 32 32\"/></g></svg>";
-
-var fog = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 32h30\"/><animateTransform attributeName=\"transform\" begin=\"0s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-4 0; 4 0; -4 0\"/></g><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 39h30\"/><animateTransform attributeName=\"transform\" begin=\"-2s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-3 0; 3 0; -3 0\"/></g><g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 25h30\"/><animateTransform attributeName=\"transform\" begin=\"-4s\" dur=\"5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-4 0; 4 0; -4 0\"/></g></svg>";
-
-var hail = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"24\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g><g><circle cx=\"31\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.6s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 18; -4 14\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.6s\" repeatCount=\"indefinite\" values=\"1;1;0\"/></g></svg>";
-
-var lightningRainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1;1;1;1;1;1;0.1;1;0.1;1;1;0.1;1;0.1;1\"/></g></svg>";
-
-var lightning = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1;1;1;1;1;1;0.1;1;0.1;1;1;0.1;1;0.1;1\"/></g></svg>";
-
-var partlyCloudyNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M29.33 26.68a10.61 10.61 0 01-10.68-10.54A10.5 10.5 0 0119 13.5a10.54 10.54 0 1011.5 13.11 11.48 11.48 0 01-1.17.07z\"/><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-10 19.22 24.293;10 19.22 24.293;-10 19.22 24.293\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
-
-var partlyCloudy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M23.5 24a4.5 4.5 0 11-4.5-4.5 4.49 4.49 0 014.5 4.5zM19 15.67V12.5m0 23v-3.17m5.89-14.22l2.24-2.24M10.87 32.13l2.24-2.24m0-11.78l-2.24-2.24m16.26 16.26l-2.24-2.24M7.5 24h3.17m19.83 0h-3.17\"/><animateTransform attributeName=\"transform\" dur=\"45s\" from=\"0 19 24\" repeatCount=\"indefinite\" to=\"360 19 24\" type=\"rotate\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
-
-var pouring = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g></svg>";
-
-var rainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" begin=\"-0.5s\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.5s\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.08 45.01l-.16.98\"/><animateTransform attributeName=\"transform\" begin=\"-1s\" dur=\"1.5s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"1.5s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></g></svg>";
-
-var snowyRainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"31\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M33.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M31 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-1 -6; 1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 31 45; 360 31 45\"/><animate attributeName=\"opacity\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 24 45; 360 24 45\"/><animate attributeName=\"opacity\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 38 45; 360 38 45\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g></svg>";
-
-var snowy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"31\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M33.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M31 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"-1 -6; 1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 31 45; 360 31 45\"/><animate attributeName=\"opacity\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 24 45; 360 24 45\"/><animate attributeName=\"opacity\" begin=\"-2s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/><animateTransform additive=\"sum\" attributeName=\"transform\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -6; -1 12\"/><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"9s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 38 45; 360 38 45\"/><animate attributeName=\"opacity\" begin=\"-1s\" dur=\"4s\" repeatCount=\"indefinite\" values=\"0;1;1;1;0\"/></g></svg>";
-
-var sunny = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M42.5 32A10.5 10.5 0 1132 21.5 10.5 10.5 0 0142.5 32zM32 15.71V9.5m0 45v-6.21m11.52-27.81l4.39-4.39M16.09 47.91l4.39-4.39m0-23l-4.39-4.39m31.82 31.78l-4.39-4.39M15.71 32H9.5m45 0h-6.21\"/><animateTransform attributeName=\"transform\" dur=\"45s\" from=\"0 32 32\" repeatCount=\"indefinite\" to=\"360 32 32\" type=\"rotate\"/></g></svg>";
-
-var windyVariant = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"><animate attributeName=\"stroke-dashoffset\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-57; 57\"/></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"><animate attributeName=\"stroke-dashoffset\" begin=\"-1.5s\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-39; 39\"/></path></svg>";
-
-var windy = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"><animate attributeName=\"stroke-dashoffset\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-57; 57\"/></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"><animate attributeName=\"stroke-dashoffset\" begin=\"-1.5s\" dur=\"2s\" repeatCount=\"indefinite\" values=\"-39; 39\"/></path></svg>";
-
-const WEATHER_ICON = {
-    'clear-night': clearNight,
-    cloudy: cloudy,
-    exceptional: exceptional,
-    fog: fog,
-    hail: hail,
-    'lightning-rainy': lightningRainy,
-    lightning: lightning,
-    partlycloudy: partlyCloudy,
-    'partlycloudy-night': partlyCloudyNight,
-    pouring: pouring,
-    rainy: rainy,
-    'snowy-rainy': snowyRainy,
-    snowy: snowy,
-    sunny: sunny,
-    'windy-variant': windyVariant,
-    windy: windy,
-};
-
-const weatherIconElementStyle = i$4 `
-  ${elementStyle}
-
-  .weather-icon-element {
-    /* Override the HA Icon height */
-    --mdc-icon-size: var(--bwc-weather-icon-height);
-
-    padding: var(--bwc-global-padding);
-    font-size: var(--bwc-weather-icon-height);
-    height: calc(var(--bwc-weather-icon-height)+var(--bwc-global-padding));
-
-    svg {
-      height: var(--bwc-weather-icon-height);
-    }
-  }
-`;
-
-let WeatherIconElement = class WeatherIconElement extends r$2 {
-    constructor() {
-        super(...arguments);
-        this.useHAWeatherIcons = false;
-    }
-    render() {
-        const weatherIconIndex = this.weatherEntityId
-            ? this.hass.states[this.weatherEntityId].state
-            : undefined;
-        return x `<div class=${classnames('weather-icon-element')}>
-      ${weatherIconIndex &&
-            (this.useHAWeatherIcons
-                ? x `<ha-icon icon="mdi:weather-${weatherIconIndex}"></ha-icon>`
-                : x `${o(WEATHER_ICON[weatherIconIndex])}`)}
-    </div>`;
-    }
-};
-WeatherIconElement.styles = [weatherIconElementStyle];
-__decorate([
-    n({ attribute: false })
-], WeatherIconElement.prototype, "hass", undefined);
-__decorate([
-    n()
-], WeatherIconElement.prototype, "weatherEntityId", undefined);
-__decorate([
-    n({ type: Boolean })
-], WeatherIconElement.prototype, "useHAWeatherIcons", undefined);
-WeatherIconElement = __decorate([
-    t$1('bwc-weather-icon-element')
-], WeatherIconElement);
-
-const isDayMode = (hass) => {
-    return hass?.states['sun.sun']
-        ? hass.states['sun.sun'].state === 'above_horizon'
-        : true;
-};
-
-const bomWeatherCardStyle = i$4 `
-  ${cssVariables}
-
-  ha-card {
-    color: var(--bwc-text-color);
-
-    /* TODO: make this configurable */
-    background: linear-gradient(
-      to bottom,
-      var(--bwc-background-color-start),
-      var(--bwc-background-color-end)
-    );
-    min-height: var(--bwc-min-height);
-
-    /* TODO: make this configurable */
-    border: none;
-  }
-
-  h1.card-header {
-    padding-bottom: 0;
-  }
-
-  ${debugStyle}
-`;
-
-let BomWeatherCard = class BomWeatherCard extends r$2 {
-    constructor() {
-        super(...arguments);
-        this._config = { ...DEFAULT_CARD_CONFIG };
-        this._dayMode = true;
-        this._darkMode = false;
-        this.localize = getLocalizer(this.hass);
-    }
-    static getStubConfig() {
-        // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
-        return { ...DEFAULT_CARD_CONFIG };
-    }
-    setConfig(config) {
-        if (!config) {
-            throw new Error(this.localize('Invalid configuration'));
-        }
-        this._config = { ...this._config, ...config };
-    }
-    // Override the updated method
-    updated(changedProperties) {
-        // TODO: This may get too heavy if hass changes often
-        if (changedProperties.has('hass')) {
-            console.log('hass changed. If this happens too often, consider optimizing');
-            this._dayMode = isDayMode(this.hass);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this._darkMode = this.hass.selectedTheme.dark === true;
-        }
-    }
-    // Render card
-    render() {
-        console.log(this._config.forecast_entity_id
-            ? this.hass.states[this._config.forecast_entity_id]
-            : 'N/A');
-        return x `<ha-card
-      class="${classnames({
-            day: this._dayMode,
-            night: !this._dayMode,
-            'dark-mode': this._darkMode,
-            'light-mode': !this._darkMode,
-        })}"
-    >
-      <!-- Card Header -->
-      ${this._config.title
-            ? x `<h1 class="card-header">${this._config.title}</h1>`
-            : E}
-
-      <!-- First Row -->
-      <div class="container">
-        <!-- Time -->
-        ${this._config.show_time
-            ? x `<bwc-time-element .hass=${this.hass}></bwc-time-element>`
-            : E}
-
-        <!-- Temperature -->
-        <bwc-temperature-element .temperature=${20}></bwc-temperature-element>
-
-        <!-- Weather Icon -->
-        ${this._config.forecast_entity_id
-            ? x `<bwc-weather-icon-element
-              .hass=${this.hass}
-              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
-              .weatherEntityId=${this._config.forecast_entity_id}
-            ></bwc-weather-icon-element>`
-            : E}
-      </div>
-    </ha-card> `;
-    }
-    // card configuration
-    static getConfigElement() {
-        return document.createElement('bom-weather-card-editor');
-    }
-};
-BomWeatherCard.styles = bomWeatherCardStyle;
-__decorate([
-    n({ attribute: false })
-], BomWeatherCard.prototype, "hass", undefined);
-__decorate([
-    r()
-], BomWeatherCard.prototype, "_config", undefined);
-__decorate([
-    r()
-], BomWeatherCard.prototype, "_dayMode", undefined);
-__decorate([
-    r()
-], BomWeatherCard.prototype, "_darkMode", undefined);
-BomWeatherCard = __decorate([
-    t$1('bom-weather-card')
-], BomWeatherCard);
-
-const localizer = getLocalizer();
-console.info(`%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `, 'color: orange; font-weight: bold; background: black', 'color: white; font-weight: bold; background: dimgray');
-window.customCards = window.customCards || [];
-window.customCards.push({
-    type: CUSTOM_CARD_ID,
-    name: localizer('common.title'),
-    description: localizer('common.description'),
-    prototype: BomWeatherCard,
-    preview: true,
+var bomWeatherCardEditor_element = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  get BomWeatherCardEditor () { return BomWeatherCardEditor; }
 });
 //# sourceMappingURL=bom-weather-card.js.map

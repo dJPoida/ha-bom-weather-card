@@ -6,7 +6,20 @@ export const temperatureElementStyle = css`
 
   .temperature-element {
     padding: var(--bwc-global-padding);
-    font-size: var(--bwc-time-font-size);
-    line-height: 1em;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    span.number {
+      font-size: var(--bwc-temperature-number-font-size);
+      line-height: 1em;
+      margin-bottom: 0.25em;
+      font-weight: 500;
+    }
+
+    span.description {
+      font-size: var(--bwc-temperature-description-font-size);
+      line-height: 1em;
+    }
   }
 `;

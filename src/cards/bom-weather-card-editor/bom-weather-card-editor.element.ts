@@ -108,6 +108,13 @@ export class BomWeatherCardEditor
         this.localize('editor.showTime')
       )}
 
+      <!-- Observation Entity ID -->
+      ${this.entityPicker(
+        CONFIG_PROP.OBSERVATION_ENTITY_ID,
+        this.localize('editor.observationEntity'),
+        true
+      )}
+
       <!-- Forecast Entity ID -->
       ${this.entityPicker(
         CONFIG_PROP.FORECAST_ENTITY_ID,
@@ -129,7 +136,7 @@ export class BomWeatherCardEditor
 
     const targetId = target.id as A_CONFIG_PROP;
 
-    if (!(targetId in this._config)) {
+    if (!(targetId in DEFAULT_CARD_CONFIG)) {
       throw new Error(this.localize('error.invalidConfigProperty', targetId));
     }
 
@@ -175,4 +182,10 @@ export class BomWeatherCardEditor
   }
 
   static override styles: CSSResultGroup = bomWeatherCardEditorStyle;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'bom-weather-card-editor': BomWeatherCardEditor;
+  }
 }

@@ -3,6 +3,7 @@ import {HomeAssistant} from 'custom-card-helpers';
 import {CSSResultGroup, LitElement, html, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {DEFAULT_CARD_CONFIG} from '../../constants/default-config.const';
+import {OBSERVATION_ATTRIBUTE} from '../../constants/observation-attributes.const';
 import {isDayMode} from '../../helpers/is-day-mode.helper';
 import {getLocalizer} from '../../localize/localize';
 import {CardConfig} from '../../types/card-config.type';
@@ -26,7 +27,7 @@ export class BomWeatherCard extends LitElement {
 
   setConfig(config: CardConfig) {
     if (!config) {
-      throw new Error(this.localize('Invalid configuration'));
+      throw new Error(this.localize('error.invalidConfigProperty'));
     }
     this._config = {...this._config, ...config};
   }
@@ -37,23 +38,14 @@ export class BomWeatherCard extends LitElement {
   ): void {
     // TODO: This may get too heavy if hass changes often
     if (changedProperties.has('hass')) {
-      console.log(
-        'hass changed. If this happens too often, consider optimizing'
-      );
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this._darkMode = (this.hass.selectedTheme as any).dark === true;
+      this._darkMode = (this.hass.themes as any).darkMode === true;
     }
   }
 
   // Render card
   override render() {
-    console.log(
-      this._config.forecast_entity_id
-        ? this.hass.states[this._config.forecast_entity_id]
-        : 'N/A'
-    );
-
     return html`<ha-card
       class="${classnames({
         day: this._dayMode,
@@ -68,31 +60,48 @@ export class BomWeatherCard extends LitElement {
         : nothing}
 
       <!-- First Row -->
-      <div class="container">
+      <div class="item-container">
         <!-- Time -->
         ${this._config.show_time
-          ? html`<bwc-time-element .hass=${this.hass}></bwc-time-element>`
+          ? html`<bwc-time-element
+              class="item"
+              .hass=${this.hass}
+            ></bwc-time-element>`
           : nothing}
 
-        <!-- Temperature -->
-        <bwc-temperature-element .temperature=${20}></bwc-temperature-element>
+        <!-- Current Temperature (conditional on observation_entity_id) -->
+        ${this._config.observation_entity_id
+          ? html`<bwc-temperature-element
+              class="item"
+              .temperature=${this.hass.states[
+                this._config.observation_entity_id
+              ].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
+            ></bwc-temperature-element>`
+          : nothing}
 
-        <!-- Weather Icon -->
-        ${this._config.forecast_entity_id
+        <!-- Weather Icon (conditional on forecast_entity_id) -->
+        ${this._config.observation_entity_id
           ? html`<bwc-weather-icon-element
+              class=${classnames('item', 'right')}
               .hass=${this.hass}
               .useHAWeatherIcons=${this._config.use_ha_weather_icons}
-              .weatherEntityId=${this._config.forecast_entity_id}
+              .weatherEntityId=${this._config.observation_entity_id}
             ></bwc-weather-icon-element>`
           : nothing}
       </div>
     </ha-card> `;
   }
 
-  // card configuration
-  static getConfigElement() {
+  public static async getConfigElement(): Promise<LitElement> {
+    await import('../bom-weather-card-editor/bom-weather-card-editor.element');
     return document.createElement('bom-weather-card-editor');
   }
 
   static override styles: CSSResultGroup = bomWeatherCardStyle;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'bom-weather-card': BomWeatherCard;
+  }
 }
