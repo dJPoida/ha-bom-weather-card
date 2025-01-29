@@ -7,6 +7,7 @@ import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import serve from 'rollup-plugin-serve';
 import svg from 'rollup-plugin-svg';
+import incrementBuildNumber from './tools/increment-build-number.mjs';
 
 const production = !process.env.ROLLUP_WATCH;
 const serveOptions = {
@@ -31,6 +32,7 @@ export default {
     },
   ],
   plugins: [
+    incrementBuildNumber(),
     replace({preventAssignment: false, 'Reflect.decorate': 'undefined'}),
     svg(),
     resolve(),
