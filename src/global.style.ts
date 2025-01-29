@@ -10,7 +10,7 @@ export const cssVariables = css`
     --bwc-time-number-font-size: 3.5rem;
     --bwc-temperature-number-font-size: 3.5rem;
     --bwc-temperature-description-font-size: 1rem;
-    --bwc-weather-icon-height: 6rem;
+    --bwc-weather-icon-height: 7rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
     --bwc-item-container-height: 5rem;

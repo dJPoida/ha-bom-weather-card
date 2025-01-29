@@ -167,6 +167,7 @@ const t$1=t=>(e,o)=>{ undefined!==o?o.addInitializer((()=>{customElements.define
 const CONFIG_PROP = {
     TITLE: 'title',
     SHOW_TIME: 'show_time',
+    SHOW_DATE: 'show_date',
     OBSERVATION_ENTITY_ID: 'observation_entity_id',
     FORECAST_ENTITY_ID: 'forecast_entity_id',
     USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
@@ -186,10 +187,11 @@ const DEFAULT_CARD_CONFIG = {
     index: undefined,
     view_index: undefined,
     [CONFIG_PROP.TITLE]: undefined,
-    [CONFIG_PROP.SHOW_TIME]: false,
-    [CONFIG_PROP.USE_HA_WEATHER_ICONS]: false,
+    [CONFIG_PROP.SHOW_TIME]: undefined,
+    [CONFIG_PROP.SHOW_DATE]: undefined,
     [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
     [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
+    [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
 };
 
 const OBSERVATION_ATTRIBUTE = {
@@ -213,14 +215,15 @@ var common = {
 	description: "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
 };
 var editor = {
-	required: "Required",
-	optional: "Optional",
-	title: "Title",
-	showTime: "Show Time",
-	timeEntity: "Time Entity",
 	forecastEntity: "Forecast Entity",
 	observationEntity: "Observation Entity",
+	optional: "Optional",
+	required: "Required",
+	showDate: "Show Date",
 	showLocation: "Show Location",
+	showTime: "Show Time",
+	timeEntity: "Time Entity",
+	title: "Title",
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons"
 };
 var error = {
@@ -282,7 +285,7 @@ const cssVariables = i$4 `
     --bwc-time-number-font-size: 3.5rem;
     --bwc-temperature-number-font-size: 3.5rem;
     --bwc-temperature-description-font-size: 1rem;
-    --bwc-weather-icon-height: 6rem;
+    --bwc-weather-icon-height: 7rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
     --bwc-item-container-height: 5rem;
@@ -436,14 +439,6 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
 
       <!-- First Row -->
       <div class="item-container">
-        <!-- Time -->
-        ${this._config.show_time
-            ? x `<bwc-time-element
-              class="item"
-              .hass=${this.hass}
-            ></bwc-time-element>`
-            : E}
-
         <!-- Current Temperature (conditional on observation_entity_id) -->
         ${this._config.observation_entity_id
             ? x `<bwc-temperature-element
@@ -455,12 +450,40 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         <!-- Weather Icon (conditional on forecast_entity_id) -->
         ${this._config.observation_entity_id
             ? x `<bwc-weather-icon-element
-              class=${classNames('item', 'right')}
+              class=${classNames('item', {
+                center: this._config.show_time === true,
+                right: this._config.show_time !== true,
+            })}
               .hass=${this.hass}
-              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+              .useHAWeatherIcons=${this._config.use_ha_weather_icons === true}
               .weatherEntityId=${this._config.observation_entity_id}
             ></bwc-weather-icon-element>`
             : E}
+
+        <!-- Time -->
+        ${this._config.show_time === true
+            ? x `<bwc-time-element
+              class="item"
+              .hass=${this.hass}
+            ></bwc-time-element>`
+            : E}
+      </div>
+
+      <!-- Second Row -->
+      <div class="item-container">
+        <div class="item">TBD: Min / Max</div>
+
+        <div class="item">TBD: Warnings</div>
+      </div>
+
+      <!-- Third Row -->
+      <div class="item-container">
+        <div class="item">TBD: Rain</div>
+      </div>
+
+      <!-- Fourth Row -->
+      <div class="item-container">
+        <div class="item">TBD: Summary</div>
       </div>
     </ha-card> `;
     }
@@ -650,7 +673,7 @@ const weatherIconElementStyle = i$4 `
     flex: 1;
     display: flex;
     justify-content: var(--bwc-item-justify-content);
-    align-items: center;
+    align-items: flex-start;
     padding: 0 var(--bwc-global-padding);
     font-size: var(--bwc-weather-icon-height);
 
@@ -916,6 +939,9 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
       <!-- Show Time -->
       ${this.booleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
 
+      <!-- Show Date -->
+      ${this.booleanField(CONFIG_PROP.SHOW_DATE, this.localize('editor.showDate'))}
+
       <!-- Observation Entity ID -->
       ${this.entityPicker(CONFIG_PROP.OBSERVATION_ENTITY_ID, this.localize('editor.observationEntity'), true)}
 
@@ -939,7 +965,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         if (newValue === this._config[targetId])
             return;
         const newConfig = { ...this._config };
-        if (newValue === '' || newValue == undefined) {
+        if (newValue === '' || newValue == undefined || newValue === false) {
             delete newConfig[targetId];
         }
         else {

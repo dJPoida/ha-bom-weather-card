@@ -61,14 +61,6 @@ export class BomWeatherCard extends LitElement {
 
       <!-- First Row -->
       <div class="item-container">
-        <!-- Time -->
-        ${this._config.show_time
-          ? html`<bwc-time-element
-              class="item"
-              .hass=${this.hass}
-            ></bwc-time-element>`
-          : nothing}
-
         <!-- Current Temperature (conditional on observation_entity_id) -->
         ${this._config.observation_entity_id
           ? html`<bwc-temperature-element
@@ -82,12 +74,40 @@ export class BomWeatherCard extends LitElement {
         <!-- Weather Icon (conditional on forecast_entity_id) -->
         ${this._config.observation_entity_id
           ? html`<bwc-weather-icon-element
-              class=${classnames('item', 'right')}
+              class=${classnames('item', {
+                center: this._config.show_time === true,
+                right: this._config.show_time !== true,
+              })}
               .hass=${this.hass}
-              .useHAWeatherIcons=${this._config.use_ha_weather_icons}
+              .useHAWeatherIcons=${this._config.use_ha_weather_icons === true}
               .weatherEntityId=${this._config.observation_entity_id}
             ></bwc-weather-icon-element>`
           : nothing}
+
+        <!-- Time -->
+        ${this._config.show_time === true
+          ? html`<bwc-time-element
+              class="item"
+              .hass=${this.hass}
+            ></bwc-time-element>`
+          : nothing}
+      </div>
+
+      <!-- Second Row -->
+      <div class="item-container">
+        <div class="item">TBD: Min / Max</div>
+
+        <div class="item">TBD: Warnings</div>
+      </div>
+
+      <!-- Third Row -->
+      <div class="item-container">
+        <div class="item">TBD: Rain</div>
+      </div>
+
+      <!-- Fourth Row -->
+      <div class="item-container">
+        <div class="item">TBD: Summary</div>
       </div>
     </ha-card> `;
   }

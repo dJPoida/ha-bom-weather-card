@@ -17,9 +17,11 @@ export const DEFAULT_CARD_CONFIG: CardConfig = {
 
   [CONFIG_PROP.TITLE]: undefined,
 
-  [CONFIG_PROP.SHOW_TIME]: false,
-  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: false,
+  [CONFIG_PROP.SHOW_TIME]: undefined,
+  [CONFIG_PROP.SHOW_DATE]: undefined,
 
   [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
   [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
+
+  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
 };

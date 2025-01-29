@@ -11,7 +11,7 @@ export const weatherIconElementStyle = css`
     flex: 1;
     display: flex;
     justify-content: var(--bwc-item-justify-content);
-    align-items: center;
+    align-items: flex-start;
     padding: 0 var(--bwc-global-padding);
     font-size: var(--bwc-weather-icon-height);
 

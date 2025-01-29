@@ -108,6 +108,12 @@ export class BomWeatherCardEditor
         this.localize('editor.showTime')
       )}
 
+      <!-- Show Date -->
+      ${this.booleanField(
+        CONFIG_PROP.SHOW_DATE,
+        this.localize('editor.showDate')
+      )}
+
       <!-- Observation Entity ID -->
       ${this.entityPicker(
         CONFIG_PROP.OBSERVATION_ENTITY_ID,
@@ -146,7 +152,7 @@ export class BomWeatherCardEditor
     if (newValue === this._config[targetId]) return;
 
     const newConfig: CardConfig = {...this._config};
-    if (newValue === '' || newValue == undefined) {
+    if (newValue === '' || newValue == undefined || newValue === false) {
       delete newConfig[targetId];
     } else {
       (newConfig as Record<string, unknown>)[targetId] = newValue;

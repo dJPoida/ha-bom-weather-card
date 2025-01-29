@@ -5,14 +5,15 @@
     "description": "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
   },
   "editor": {
-    "required": "Required",
-    "optional": "Optional",
-    "title": "Title",
-    "showTime": "Show Time",
-    "timeEntity": "Time Entity",
     "forecastEntity": "Forecast Entity",
     "observationEntity": "Observation Entity",
+    "optional": "Optional",
+    "required": "Required",
+    "showDate": "Show Date",
     "showLocation": "Show Location",
+    "showTime": "Show Time",
+    "timeEntity": "Time Entity",
+    "title": "Title",
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons"
   },
   "error": {
