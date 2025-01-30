@@ -52,3 +52,4 @@ export type DOMAIN = typeof DOMAIN;
 export type A_DOMAIN = DOMAIN[keyof DOMAIN];
 
 export const WEATHER_DOMAINS: Array<A_DOMAIN> = [DOMAIN.WEATHER];
+export const SENSOR_DOMAINS: Array<A_DOMAIN> = [DOMAIN.SENSOR];

@@ -1,4 +1,4 @@
-var version = "0.0.3";
+var version = "0.0.313";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -166,11 +166,30 @@ const t$1=t=>(e,o)=>{ undefined!==o?o.addInitializer((()=>{customElements.define
 
 const CONFIG_PROP = {
     TITLE: 'title',
-    SHOW_TIME: 'show_time',
-    SHOW_DATE: 'show_date',
     OBSERVATION_ENTITY_ID: 'observation_entity_id',
     FORECAST_ENTITY_ID: 'forecast_entity_id',
     USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
+    SHOW_CURRENT_TEMP: 'show_current_temp',
+    CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
+    SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
+    FEELS_LIKE_TEMP_ENTITY_ID: 'feels_like_temp_entity_id',
+    SHOW_TIME: 'show_time',
+    TIME_ENTITY_ID: 'time_entity_id',
+    SHOW_DATE: 'show_date',
+    DATE_ENTITY_ID: 'date_entity_id',
+    SHOW_MIN_MAX_TEMPS: 'show_min_max_temps',
+    MIN_TEMP_ENTITY_ID: 'min_temp_entity_id',
+    MIN_LABEL_ENTITY_ID: 'min_label_entity_id',
+    MAX_TEMP_ENTITY_ID: 'max_temp_entity_id',
+    MAX_LABEL_ENTITY_ID: 'max_label_entity_id',
+    SHOW_WARNINGS_COUNT: 'show_warnings_count',
+    WARNINGS_COUNT_ENTITY_ID: 'warning_count_entity_id',
+    SHOW_RAIN_SUMMARY: 'show_rain_summary',
+    RAIN_SUMMARY_ENTITY_ID: 'rain_summary_entity_id',
+    SHOW_FORECAST_SUMMARY: 'show_forecast_summary',
+    FORECAST_SUMMARY_ENTITY_ID: 'forecast_summary_entity_id',
+    SHOW_HOURLY_FORECAST: 'show_hourly_forecast',
+    SHOW_DAILY_FORECAST: 'show_daily_forecast',
 };
 
 /**
@@ -187,15 +206,35 @@ const DEFAULT_CARD_CONFIG = {
     index: undefined,
     view_index: undefined,
     [CONFIG_PROP.TITLE]: undefined,
-    [CONFIG_PROP.SHOW_TIME]: undefined,
-    [CONFIG_PROP.SHOW_DATE]: undefined,
     [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
     [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
+    [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
+    [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
+    [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_TIME]: undefined,
+    [CONFIG_PROP.TIME_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_DATE]: undefined,
+    [CONFIG_PROP.DATE_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_MIN_MAX_TEMPS]: true,
+    [CONFIG_PROP.MIN_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.MIN_LABEL_ENTITY_ID]: undefined,
+    [CONFIG_PROP.MAX_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.MAX_LABEL_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_WARNINGS_COUNT]: true,
+    [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_RAIN_SUMMARY]: true,
+    [CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_FORECAST_SUMMARY]: true,
+    [CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_HOURLY_FORECAST]: true,
+    [CONFIG_PROP.SHOW_DAILY_FORECAST]: true,
 };
 
 const LANGUAGE = {
     EN: 'en',
+    EN_GB: 'en_gb',
 };
 const DEFAULT_LANGUAGE = LANGUAGE.EN;
 
@@ -218,19 +257,40 @@ var card = {
 	feelsLike: "Feels like"
 };
 var editor = {
+	currentTemperatureEntity: "Current Temperature Entity",
+	dateEntity: "Date Entity",
+	feelsLikeTemperatureEntity: "Feels Like Temperature Entity",
 	forecastEntity: "Forecast Entity",
 	observationEntity: "Observation Entity",
 	optional: "Optional",
 	required: "Required",
 	showDate: "Show Date",
-	showLocation: "Show Location",
+	showCurrentTemperature: "Show Current Temperature",
+	showFeelsLikeTemperature: "Show Feels Like Temperature",
 	showTime: "Show Time",
+	showMinMaxTemps: "Show Min/Max Temperatures",
+	dailyForecast: "Daily Forecast",
+	hourlyForecast: "Hourly Forecast",
+	minTempEntity: "Min Temp Entity",
+	maxTempEntity: "Min Temp Entity",
+	minLabelEntity: "Min Label Entity",
+	maxLabelEntity: "Min Label Entity",
+	showWarningsCount: "Show Warnings Count",
+	warningsCountEntity: "Warnings Count Entity",
+	summary: "Summary",
 	timeEntity: "Time Entity",
 	title: "Title",
-	useDefaultHaWeatherIcons: "Use Default HA Weather Icons"
+	useDefaultHaWeatherIcons: "Use Default HA Weather Icons",
+	showRainSummary: "Show Rain Summary",
+	rainSummaryEntity: "Rain Summary Entity",
+	showForecastSummary: "Show Forecast Summary",
+	forecastSummaryEntity: "Forecast Summary Entity",
+	showHourlyForecast: "Show Hourly Forecast",
+	showDailyForecast: "Show Daily Forecast"
 };
 var error = {
-	invalidConfigProperty: "Invalid config property: {property}"
+	invalidConfigProperty: "Invalid config property: {property}",
+	failedToPreLoadElement: " Failed to pre-load HA element: {element}"
 };
 var en = {
 	common: common,
@@ -252,11 +312,17 @@ var en$1 = /*#__PURE__*/Object.freeze({
  * Add new languages here when they are added
  */
 const languageStrings = {
-    en: en$1, // English
+    [LANGUAGE.EN]: en$1, // English
+    [LANGUAGE.EN_GB]: en$1, // English
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function getLocalizer(lang = DEFAULT_LANGUAGE) {
+    const targetLang = (lang || '')
+        .replace(/['"]+/g, '')
+        .replace('-', '_')
+        .toLowerCase();
+    console.assert(Object.values(LANGUAGE).includes(targetLang), `Invalid language: ${targetLang}`);
     /**
      * Localize a string
      * @param string - The string to localize
@@ -268,12 +334,11 @@ function getLocalizer(lang = DEFAULT_LANGUAGE) {
      * @returns The localized string
      */
     return function localize(string, substitute = {}) {
-        console.assert(lang === undefined || Object.values(LANGUAGE).includes(lang), `Invalid language: ${lang}`);
         let translated;
         try {
             translated = string
                 .split('.')
-                .reduce((o, i) => o[i], languageStrings[lang]);
+                .reduce((o, i) => o[i], languageStrings[targetLang]);
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         }
         catch (e) {
@@ -299,6 +364,10 @@ const containerStyles = i$4 `
     display: flex;
     flex-wrap: wrap;
     justify-content: space-evenly;
+
+    &.reverse {
+      flex-wrap: wrap-reverse;
+    }
 
     .item {
       --bwc-item-justify-content: flex-start;
@@ -332,6 +401,8 @@ const cssVariables = i$4 `
     --bwc-time-date-date-font-size: 1rem;
     --bwc-temperature-number-font-size: 3.5rem;
     --bwc-temperature-description-font-size: 1rem;
+    --bwc-value-label-value-font-size: 2rem;
+    --bwc-value-label-label-font-size: 1rem;
     --bwc-weather-icon-height: 7rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
@@ -370,8 +441,13 @@ const debugStyles = i$4 `
     --bwc-debug-element-border: 1px solid red;
     --bwc-debug-container-border: 1px solid orange;
 
+    .bwc-debug {
+      display: block;
+    }
+
     & > div,
-    & > div > span {
+    & > div > span,
+    div.bwc-debug {
       box-sizing: border-box;
       border: var(--bwc-debug-element-border);
     }
@@ -383,14 +459,56 @@ const debugStyles = i$4 `
   }
 `;
 
+const globalStyles = i$4 `
+  :host {
+    .bwc-debug {
+      display: none;
+    }
+  }
+
+  /* Comment or uncomment this line to toggle debug styles */
+  ${debugStyles}
+`;
+
 let BomWeatherCard = class BomWeatherCard extends r$2 {
     constructor() {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
         this._dayMode = true;
         this._darkMode = false;
+        this.forecast = null;
         this.language = DEFAULT_LANGUAGE;
         this.localize = getLocalizer(this.language);
+    }
+    static get styles() {
+        return i$4 `
+      ${cssVariables}
+      ${globalStyles}
+      ${containerStyles}
+      
+      ha-card {
+        color: var(--bwc-text-color);
+
+        /* TODO: make this configurable */
+        background: linear-gradient(
+          to bottom,
+          var(--bwc-background-color-start),
+          var(--bwc-background-color-end)
+        );
+        min-height: var(--bwc-min-height);
+
+        /* TODO: make this configurable */
+        border: none;
+      }
+
+      h1.card-header {
+        padding-bottom: 0;
+      }
+
+      span.version {
+        padding: var(--bwc-global-padding);
+      }
+    `;
     }
     static getStubConfig() {
         // TODO: this needs to be implemented properly so that the preview in the card picker renders sample data
@@ -414,58 +532,93 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
                 this.localize = getLocalizer(this.language);
             }
         }
+        else if (changedProperties.has('entity')) {
+            this.loadForecast();
+        }
     }
-    // Render card
-    render() {
-        return x `<ha-card
-      class="${classNames({
-            day: this._dayMode,
-            night: !this._dayMode,
-            'dark-mode': this._darkMode,
-            'light-mode': !this._darkMode,
-        })}"
-    >
-      <!-- Card Header -->
-      ${this._config.title
-            ? x `<h1 class="card-header">${this._config.title}</h1>`
-            : E}
-
+    connectedCallback() {
+        super.connectedCallback();
+        this.loadForecast();
+    }
+    async loadForecast() {
+        this.forecast = this.getForecast() ?? (await this.fetchForecast());
+        this.requestUpdate();
+    }
+    getForecast() {
+        if (this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] === undefined) {
+            return null;
+        }
+        const stateObj = this.hass.states[this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]];
+        return stateObj?.attributes?.forecast || null;
+    }
+    async fetchForecast() {
+        try {
+            const result = await this.hass.callWS({
+                type: 'weather/get_forecast',
+                entity_id: this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID],
+                forecast_type: 'daily',
+            });
+            console.log(result);
+            return result.forecast;
+        }
+        catch (error) {
+            console.error('Error fetching forecast:', error);
+            return null;
+        }
+    }
+    renderSummary() {
+        const showCurrentTemp = this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] === true &&
+            this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] !== undefined;
+        const showTime = this._config[CONFIG_PROP.SHOW_TIME] === true &&
+            this._config[CONFIG_PROP.TIME_ENTITY_ID] !== undefined;
+        const showDate = this._config[CONFIG_PROP.SHOW_DATE] === true &&
+            this._config[CONFIG_PROP.DATE_ENTITY_ID] !== undefined;
+        return x `<div class="summary">
       <!-- First Row -->
-      <div class="item-container">
-        <!-- Current Temperature (conditional on observation_entity_id) -->
-        ${this._config.observation_entity_id
+      <div class="item-container reverse">
+        <!-- Current Temperature -->
+        ${showCurrentTemp
             ? x `<bwc-temperature-element
               class="item"
               .localize=${this.localize}
-              .temperature=${this.hass.states[this._config.observation_entity_id].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
+              .temperature=${this.hass.states[this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
             ></bwc-temperature-element>`
             : E}
 
-        <!-- Weather Icon (conditional on forecast_entity_id) -->
-        ${this._config.observation_entity_id
+        <!-- Weather Icon  -->
+        ${showCurrentTemp
             ? x `<bwc-weather-icon-element
               class=${classNames('item', {
-                center: this._config.show_time === true,
-                right: this._config.show_time !== true,
+                center: showTime,
+                right: !showTime,
             })}
               .hass=${this.hass}
-              .useHAWeatherIcons=${this._config.use_ha_weather_icons === true}
-              .weatherEntityId=${this._config.observation_entity_id}
+              .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
+              .weatherEntityId=${this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]}
             ></bwc-weather-icon-element>`
             : E}
 
         <!-- Time -->
-        ${this._config.show_time === true
+        ${showTime
             ? x `<bwc-time-date-element
               class="item right"
               .hass=${this.hass}
+              .showDate=${showDate}
             ></bwc-time-date-element>`
             : E}
       </div>
 
       <!-- Second Row -->
       <div class="item-container">
-        <div class="item">TBD: Min / Max</div>
+        <bwc-value-label-element
+          .value=${'69°'}
+          .label=${'Min Temp'}
+        ></bwc-value-label-element>
+
+        <bwc-value-label-element
+          .value=${'69°'}
+          .label=${'Max Temp'}
+        ></bwc-value-label-element>
 
         <div class="item">TBD: Warnings</div>
       </div>
@@ -479,38 +632,36 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
       <div class="item-container">
         <div class="item">TBD: Summary</div>
       </div>
+    </div> `;
+    }
+    // Render card
+    render() {
+        console.log(this.hass.states[this._config.observation_entity_id], this.forecast);
+        return x `<ha-card
+      class="${classNames({
+            day: this._dayMode,
+            night: !this._dayMode,
+            'dark-mode': this._darkMode,
+            'light-mode': !this._darkMode,
+        })}"
+    >
+      <!-- Card Header -->
+      ${this._config.title
+            ? x `<h1 class="card-header">${this._config.title}</h1>`
+            : E}
+
+      <!-- Summary -->
+      ${this.renderSummary()}
+
+      <!-- Debug Info -->
+      <div class="bwc-debug item-container">
+        <span class="version">Version ${version}</span>
+      </div>
     </ha-card> `;
     }
     static async getConfigElement() {
         await Promise.resolve().then(function () { return bomWeatherCardEditor; });
         return document.createElement('bom-weather-card-editor');
-    }
-    static get styles() {
-        return i$4 `
-      ${cssVariables}
-      ${containerStyles}
-      
-        ha-card {
-        color: var(--bwc-text-color);
-
-        /* TODO: make this configurable */
-        background: linear-gradient(
-          to bottom,
-          var(--bwc-background-color-start),
-          var(--bwc-background-color-end)
-        );
-        min-height: var(--bwc-min-height);
-
-        /* TODO: make this configurable */
-        border: none;
-      }
-
-      h1.card-header {
-        padding-bottom: 0;
-      }
-
-      ${debugStyles}
-    `;
     }
 };
 __decorate([
@@ -525,17 +676,19 @@ __decorate([
 __decorate([
     r()
 ], BomWeatherCard.prototype, "_darkMode", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "forecast", undefined);
 BomWeatherCard = __decorate([
     t$1('bom-weather-card')
 ], BomWeatherCard);
 
 const elementStyles = i$4 `
+  ${globalStyles}
+
   :host {
     display: block;
   }
-
-  /* Comment or uncomment this line to toggle debug styles */
-  ${debugStyles}
 `;
 
 let temperatureElement = class temperatureElement extends r$2 {
@@ -592,6 +745,7 @@ temperatureElement = __decorate([
 let TimeElement = class TimeElement extends r$2 {
     constructor() {
         super(...arguments);
+        this.showDate = false;
         this._currentTime = '';
         this._currentDate = '';
     }
@@ -617,7 +771,9 @@ let TimeElement = class TimeElement extends r$2 {
     render() {
         return x `<div class=${classNames('time-date-element')}>
       <span class="time">${this._currentTime}</span>
-      <span class="date">${this._currentDate}</span>
+      ${this.showDate
+            ? x `<span class="date">${this._currentDate}</span>`
+            : E}
     </div>`;
     }
     static get styles() {
@@ -653,6 +809,9 @@ __decorate([
     n({ attribute: false })
 ], TimeElement.prototype, "hass", undefined);
 __decorate([
+    n({ type: Boolean })
+], TimeElement.prototype, "showDate", undefined);
+__decorate([
     r()
 ], TimeElement.prototype, "_currentTime", undefined);
 __decorate([
@@ -661,6 +820,50 @@ __decorate([
 TimeElement = __decorate([
     t$1('bwc-time-date-element')
 ], TimeElement);
+
+let ValueLabelElement = class ValueLabelElement extends r$2 {
+    render() {
+        return x `<div class=${classNames('value-label-element')}>
+      <span class="value">${this.value}</span>
+      <span class="label">${this.label}</span>
+    </div>`;
+    }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+
+      .value-label-element {
+        padding: var(--bwc-global-padding);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+
+        .value {
+          font-size: var(--bwc-value-label-value-font-size);
+          line-height: 1em;
+          margin-bottom: 0.25em;
+          font-weight: 500;
+          width: fit-content;
+        }
+
+        .label {
+          font-size: var(--bwc-value-label-label-font-size);
+          line-height: 1em;
+          width: fit-content;
+        }
+      }
+    `;
+    }
+};
+__decorate([
+    n()
+], ValueLabelElement.prototype, "value", undefined);
+__decorate([
+    n()
+], ValueLabelElement.prototype, "label", undefined);
+ValueLabelElement = __decorate([
+    t$1('bwc-value-label-element')
+], ValueLabelElement);
 
 /**
  * @license
@@ -778,7 +981,7 @@ WeatherIconElement = __decorate([
 ], WeatherIconElement);
 
 const localizer = getLocalizer();
-console.info(`%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `, 'color: orange; font-weight: bold; background: black', 'color: white; font-weight: bold; background: dimgray');
+console.info(`%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `, 'color: fuchsia; font-weight: bold; background: black', 'color: white; font-weight: bold; background: dimgray');
 window.customCards = window.customCards || [];
 window.customCards.push({
     type: 'bom-weather-card',
@@ -839,6 +1042,7 @@ const DOMAIN = Object.freeze({
     WEATHER: 'weather',
 });
 const WEATHER_DOMAINS = [DOMAIN.WEATHER];
+const SENSOR_DOMAINS = [DOMAIN.SENSOR];
 
 /**
  * Check if the target element is an `ha-switch` element
@@ -847,6 +1051,32 @@ const WEATHER_DOMAINS = [DOMAIN.WEATHER];
  */
 const isElementHaSwitch = (targetElement) => {
     return (targetElement.tagName ?? '').toLowerCase() === 'ha-switch';
+};
+
+/**
+ * To access the HA Entity Picker it will need to be pre-loaded into the browser.
+ * @see: https://github.com/thomasloven/hass-config/wiki/PreLoading-Lovelace-Elements
+ *
+ * @param localize The localizer function
+ *
+ * @throws {Error} If the HA Entity Picker element fails to pre-load
+ * */
+const preLoadEntityPicker = async (localize) => {
+    if (!window.customElements.get('ha-entity-picker')) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cardHelpers = await window.loadCardHelpers();
+        const cardElement = await cardHelpers.createCardElement({
+            type: 'entities',
+            entities: [],
+        });
+        await cardElement.constructor.getConfigElement();
+        // Attempt to access the HA Entity Picker element
+        if (!window.customElements.get('ha-entity-picker')) {
+            throw new Error(localize('error.failedToPreLoadElement', {
+                element: 'ha-entity-picker',
+            }));
+        }
+    }
 };
 
 /**
@@ -875,8 +1105,62 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     constructor() {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
-        this.localize = getLocalizer(this.hass.locale?.language);
+        this.language = DEFAULT_LANGUAGE;
+        this.localize = getLocalizer(this.language);
         this._initialized = false;
+    }
+    static get styles() {
+        return i$4 `
+      ${cssVariables}
+
+      .card-config {
+        /* Cancels overlapping Margins for HAForm + Card Config options */
+        overflow: auto;
+
+        /* Prevents the entire dialog from scrolling which takes the preview out of view */
+        max-height: 55vh;
+
+        /* Seems to fix a scroll bar issue created by an empty element picker */
+        padding-right: var(--bwc-global-padding);
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      .item-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--bwc-global-padding);
+
+        margin-bottom: var(--bwc-global-padding);
+
+        &.item {
+          margin-bottom: var(--bwc-global-padding);
+          flex: 1;
+        }
+      }
+
+      ha-formfield {
+        display: flex;
+      }
+
+      ha-switch {
+        padding: var(--bwc-global-padding) 6px;
+      }
+
+      ha-expansion-panel {
+        margin-bottom: var(--bwc-global-padding);
+      }
+    `;
+    }
+    // Override the updated method
+    updated(changedProperties) {
+        if (changedProperties.has('hass')) {
+            if (this.hass.locale?.language !== this.language) {
+                this.language = this.hass.locale?.language;
+                this.localize = getLocalizer(this.language);
+            }
+        }
     }
     setConfig(newConfig) {
         // On first load, merge the default config with the user provided config
@@ -891,75 +1175,165 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
             this._config = { ...newConfig };
         }
         // Preload the HA Entity Picker
-        this.loadEntityPicker();
+        preLoadEntityPicker(this.localize);
     }
-    entityPicker(name, label, required = false) {
+    renderEntityPicker(name, label, includeDomains = [], required = false) {
         return x `
       <ha-entity-picker
         id="${name}"
         .hass=${this.hass}
+        class=${classNames('item')}
         .label="${label} (${required
             ? this.localize('editor.required')
             : this.localize('editor.optional')})"
         .value=${this._config[name] ?? ''}
-        @value-changed=${this._change}
+        @value-changed=${this._handleFieldChange}
         allow-custom-entity
-        include-domains=${toLitElementArray(WEATHER_DOMAINS)}
+        include-domains=${toLitElementArray(includeDomains)}
         .required=${required}
       >
       </ha-entity-picker>
     `;
     }
-    textField(name, label, required = false) {
+    renderTextField(name, label, required = false) {
         return x `
       <ha-textfield
         id=${name}
         type="string"
+        class=${classNames('item')}
         .value=${this._config[name] ?? ''}
         .label="${label} (${required
             ? this.localize('editor.required')
             : this.localize('editor.optional')})"
         name=${name}
-        @change=${this._change}
+        @change=${this._handleFieldChange}
         no-spinner
         .required=${required}
       >
       </ha-textfield>
     `;
     }
-    booleanField(name, label) {
+    renderBooleanField(name, label) {
         return x `
-      <ha-formfield .label=${label}>
+      <ha-formfield .label=${label} class=${classNames('item')}>
         <ha-switch
           id=${name}
           .checked=${this._config[name] ?? false}
-          @change=${this._change}
+          @change=${this._handleFieldChange}
         ></ha-switch>
       </ha-formfield>
     `;
     }
-    render() {
-        return x `<div class="card-config">
-      <!-- Title -->
-      ${this.textField(CONFIG_PROP.TITLE, this.localize('editor.title'), false)}
+    renderSummaryOptionsPanel() {
+        return x `<ha-expansion-panel
+      .outlined=${true}
+      header="${this.localize('editor.summary')}"
+    >
+      <!-- Use Default Weather Icons -->
+      ${this.renderBooleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))}
+
+      <!-- Show Current Temperature -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_CURRENT_TEMP, this.localize('editor.showCurrentTemperature'))}
+
+      <!-- Current Temp Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.CURRENT_TEMP_ENTITY_ID, this.localize('editor.currentTemperatureEntity'), SENSOR_DOMAINS)}
+
+      <!-- Show Feels Like Temperature -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_FEELS_LIKE_TEMP, this.localize('editor.showFeelsLikeTemperature'))}
+
+      <!-- Feels Like Temp Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID, this.localize('editor.feelsLikeTemperatureEntity'), SENSOR_DOMAINS)}
 
       <!-- Show Time -->
-      ${this.booleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
+
+      <!-- Time Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.TIME_ENTITY_ID, this.localize('editor.timeEntity'))}
 
       <!-- Show Date -->
-      ${this.booleanField(CONFIG_PROP.SHOW_DATE, this.localize('editor.showDate'))}
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_DATE, this.localize('editor.showDate'))}
 
-      <!-- Observation Entity ID -->
-      ${this.entityPicker(CONFIG_PROP.OBSERVATION_ENTITY_ID, this.localize('editor.observationEntity'), true)}
+      <!-- Date Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.DATE_ENTITY_ID, this.localize('editor.dateEntity'))}
 
-      <!-- Forecast Entity ID -->
-      ${this.entityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'), true)}
+      <!-- Show Min / Max Temps -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_MIN_MAX_TEMPS, this.localize('editor.showMinMaxTemps'))}
 
-      <!-- Use Default Weather Icons -->
-      ${this.booleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))}
+      <!-- Min Temp Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.MIN_TEMP_ENTITY_ID, this.localize('editor.minTempEntity'))}
+
+      <!-- Min Label Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.MIN_LABEL_ENTITY_ID, this.localize('editor.minLabelEntity'))}
+
+      <!-- Max Temp Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.MAX_TEMP_ENTITY_ID, this.localize('editor.maxTempEntity'))}
+
+      <!-- Max Label Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.MAX_LABEL_ENTITY_ID, this.localize('editor.maxLabelEntity'))}
+
+      <!-- Show Warnings Count -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_WARNINGS_COUNT, this.localize('editor.showWarningsCount'))}
+
+      <!-- Warnings Count Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID, this.localize('editor.warningsCountEntity'))}
+
+      <!-- Show Rain Summary -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_RAIN_SUMMARY, this.localize('editor.showRainSummary'))}
+
+      <!-- Rain Summary Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID, this.localize('editor.rainSummaryEntity'))}
+
+      <!-- Show Forecast Summary -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_FORECAST_SUMMARY, this.localize('editor.showForecastSummary'))}
+
+      <!-- Forecast Summary Entity -->
+      ${this.renderEntityPicker(CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID, this.localize('editor.forecastSummaryEntity'))}
+    </ha-expansion-panel>`;
+    }
+    renderHourlyForecastOptionsPanel() {
+        return x `<ha-expansion-panel
+      .outlined=${true}
+      header="${this.localize('editor.hourlyForecast')}"
+    >
+      <!-- Show Hourly Forecast -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_HOURLY_FORECAST, this.localize('editor.showHourlyForecast'))}
+    </ha-expansion-panel>`;
+    }
+    renderDailyForecastOptionsPanel() {
+        return x `<ha-expansion-panel
+      .outlined=${true}
+      header="${this.localize('editor.dailyForecast')}"
+    >
+      <!-- Show Daily Forecast -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_DAILY_FORECAST, this.localize('editor.showDailyForecast'))}
+    </ha-expansion-panel>`;
+    }
+    render() {
+        return x `<div class="card-config">
+      <div class="item-group">
+        <!-- Title -->
+        ${this.renderTextField(CONFIG_PROP.TITLE, this.localize('editor.title'), false)}
+
+        <!-- Observation Entity ID -->
+        ${this.renderEntityPicker(CONFIG_PROP.OBSERVATION_ENTITY_ID, this.localize('editor.observationEntity'))}
+
+        <!-- Forecast Entity ID -->
+        ${this.renderEntityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'), WEATHER_DOMAINS)}
+      </div>
+
+      <!-- Summary Options Panel -->
+      ${this.renderSummaryOptionsPanel()}
+
+      <!-- Hourly Forecast Options Panel -->
+      ${this.renderHourlyForecastOptionsPanel()}
+
+      <!-- Daily Forecast Options Panel -->
+      ${this.renderDailyForecastOptionsPanel()}
+
+      <!-- Show Current Temperature -->
     </div> `;
     }
-    _change(ev) {
+    _handleFieldChange(ev) {
         const target = ev.target;
         ev.stopPropagation();
         const targetId = target.id;
@@ -972,7 +1346,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         if (newValue === this._config[targetId])
             return;
         const newConfig = { ...this._config };
-        if (newValue === '' || newValue == undefined || newValue === false) {
+        if (newValue === '' || newValue == undefined) {
             delete newConfig[targetId];
         }
         else {
@@ -984,38 +1358,6 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
             composed: true,
         });
         this.dispatchEvent(messageEvent);
-    }
-    /**
-     * Need this to load the HA elements we want to re-use
-     * see: https://github.com/thomasloven/hass-config/wiki/PreLoading-Lovelace-Elements
-     * */
-    async loadEntityPicker() {
-        if (!window.customElements.get('ha-entity-picker')) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const ch = await window.loadCardHelpers();
-            const c = await ch.createCardElement({
-                type: 'entities',
-                entities: [],
-            });
-            await c.constructor.getConfigElement();
-            // Since ha-elements are not using scopedRegistry we can get a reference to
-            // the newly loaded element from the global customElement registry...
-            // const haEntityPicker = window.customElements.get("ha-entity-picker");
-        }
-    }
-    static get styles() {
-        return i$4 `
-      .card-config {
-        /* Cancels overlapping Margins for HAForm + Card Config options */
-        overflow: auto;
-
-        /* Seems to fix a scroll bar issue created by an empty element picker */
-        padding-right: 16px;
-      }
-      ha-switch {
-        padding: 16px 6px;
-      }
-    `;
     }
 };
 __decorate([

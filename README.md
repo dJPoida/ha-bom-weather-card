@@ -10,6 +10,10 @@ A [Home Assistant](https://www.home-assistant.io) card designed to display weath
 
 This card works best when paired with [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) as a Home Assistant weather provider, but should work with other providers if they follow consistent weather entity naming.
 
+## Date & Time Sensors
+
+To enable the Date and Time features your Home Assistant instance must have both the [Date and Time sensor](https://www.home-assistant.io/integrations/time_date) entities enabled in the Devices & Services -> Integrations.
+
 ## Behavior
 
 - Responds to the `sun.sun` entity for Day / Night mode

@@ -1,11 +1,10 @@
 import {css} from 'lit-element';
-import {debugStyles} from './debug.style';
+import {globalStyles} from './global.style';
 
 export const elementStyles = css`
+  ${globalStyles}
+
   :host {
     display: block;
   }
-
-  /* Comment or uncomment this line to toggle debug styles */
-  ${debugStyles}
 `;

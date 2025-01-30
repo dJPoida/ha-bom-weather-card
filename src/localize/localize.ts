@@ -9,6 +9,16 @@ import {Localizer} from '../types/localizer.type';
 import {languageStrings} from './language-strings/_language-strings';
 
 export function getLocalizer(lang: A_LANGUAGE = DEFAULT_LANGUAGE): Localizer {
+  const targetLang: A_LANGUAGE = (lang || '')
+    .replace(/['"]+/g, '')
+    .replace('-', '_')
+    .toLowerCase() as A_LANGUAGE;
+
+  console.assert(
+    Object.values(LANGUAGE).includes(targetLang),
+    `Invalid language: ${targetLang}`
+  );
+
   /**
    * Localize a string
    * @param string - The string to localize
@@ -20,11 +30,6 @@ export function getLocalizer(lang: A_LANGUAGE = DEFAULT_LANGUAGE): Localizer {
    * @returns The localized string
    */
   return function localize(string: string, substitute = {}): string {
-    console.assert(
-      lang === undefined || Object.values(LANGUAGE).includes(lang),
-      `Invalid language: ${lang}`
-    );
-
     let translated: string;
 
     try {
@@ -32,7 +37,7 @@ export function getLocalizer(lang: A_LANGUAGE = DEFAULT_LANGUAGE): Localizer {
         .split('.')
         .reduce(
           (o: any, i: string) => o[i],
-          languageStrings[lang] as unknown as Record<string, any>
+          languageStrings[targetLang] as unknown as Record<string, any>
         );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {

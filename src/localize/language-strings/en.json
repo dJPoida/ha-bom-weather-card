@@ -8,18 +8,39 @@
     "feelsLike": "Feels like"
   },
   "editor": {
+    "currentTemperatureEntity": "Current Temperature Entity",
+    "dateEntity": "Date Entity",
+    "feelsLikeTemperatureEntity": "Feels Like Temperature Entity",
     "forecastEntity": "Forecast Entity",
     "observationEntity": "Observation Entity",
     "optional": "Optional",
     "required": "Required",
     "showDate": "Show Date",
-    "showLocation": "Show Location",
+    "showCurrentTemperature": "Show Current Temperature",
+    "showFeelsLikeTemperature": "Show Feels Like Temperature",
     "showTime": "Show Time",
+    "showMinMaxTemps": "Show Min/Max Temperatures",
+    "dailyForecast": "Daily Forecast",
+    "hourlyForecast": "Hourly Forecast",
+    "minTempEntity": "Min Temp Entity",
+    "maxTempEntity": "Min Temp Entity",
+    "minLabelEntity": "Min Label Entity",
+    "maxLabelEntity": "Min Label Entity",
+    "showWarningsCount": "Show Warnings Count",
+    "warningsCountEntity": "Warnings Count Entity",
+    "summary": "Summary",
     "timeEntity": "Time Entity",
     "title": "Title",
-    "useDefaultHaWeatherIcons": "Use Default HA Weather Icons"
+    "useDefaultHaWeatherIcons": "Use Default HA Weather Icons",
+    "showRainSummary": "Show Rain Summary",
+    "rainSummaryEntity": "Rain Summary Entity",
+    "showForecastSummary": "Show Forecast Summary",
+    "forecastSummaryEntity": "Forecast Summary Entity",
+    "showHourlyForecast": "Show Hourly Forecast",
+    "showDailyForecast": "Show Daily Forecast"
   },
   "error": {
-    "invalidConfigProperty": "Invalid config property: {property}"
+    "invalidConfigProperty": "Invalid config property: {property}",
+    "failedToPreLoadElement": " Failed to pre-load HA element: {element}"
   }
 }

@@ -51,4 +51,7 @@ export default {
     ...(production ? [terser()] : [serve(serveOptions)]),
   ],
   external: ['react', 'react-dom'],
+  watch: {
+    exclude: ['package.json'],
+  },
 };

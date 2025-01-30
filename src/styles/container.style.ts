@@ -6,6 +6,10 @@ export const containerStyles = css`
     flex-wrap: wrap;
     justify-content: space-evenly;
 
+    &.reverse {
+      flex-wrap: wrap-reverse;
+    }
+
     .item {
       --bwc-item-justify-content: flex-start;
       flex: 1;

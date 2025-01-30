@@ -1,12 +1,13 @@
 import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {css, CSSResultGroup, html, LitElement} from 'lit';
+import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {elementStyles} from '../styles/element.style';
 
 @customElement('bwc-time-date-element')
 export class TimeElement extends LitElement {
   @property({attribute: false}) public hass!: HomeAssistant;
+  @property({type: Boolean}) public showDate: boolean = false;
 
   private _interval: number | undefined;
 
@@ -40,7 +41,9 @@ export class TimeElement extends LitElement {
   override render() {
     return html`<div class=${classNames('time-date-element')}>
       <span class="time">${this._currentTime}</span>
-      <span class="date">${this._currentDate}</span>
+      ${this.showDate
+        ? html`<span class="date">${this._currentDate}</span>`
+        : nothing}
     </div>`;
   }
 

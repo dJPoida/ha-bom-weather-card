@@ -2,6 +2,7 @@ import {version} from '../package.json';
 import './elements/bom-weather-card';
 import './elements/bwc-temperature-element';
 import './elements/bwc-time-date-element';
+import './elements/bwc-value-label-element';
 import './elements/bwc-weather-icon-element';
 
 import {getLocalizer} from './localize/localize';
@@ -16,7 +17,7 @@ const localizer = getLocalizer();
 
 console.info(
   `%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `,
-  'color: orange; font-weight: bold; background: black',
+  'color: fuchsia; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray'
 );
 

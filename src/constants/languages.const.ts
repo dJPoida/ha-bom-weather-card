@@ -1,5 +1,6 @@
 export const LANGUAGE = {
   EN: 'en',
+  EN_GB: 'en_gb',
 } as const;
 
 export type LANGUAGE = typeof LANGUAGE;
