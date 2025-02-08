@@ -2,8 +2,8 @@ import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
+import {WEATHER_ICON} from '../img/weather-icons/weather-icons';
 import {elementStyles} from '../styles/element.style';
-import {WEATHER_ICON} from '../weather-icons/weather-icons';
 
 @customElement('bwc-weather-icon-element')
 export class WeatherIconElement extends LitElement {

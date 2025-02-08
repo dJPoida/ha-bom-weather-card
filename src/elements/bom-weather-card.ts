@@ -239,80 +239,146 @@ export class BomWeatherCard extends LitElement {
       CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
       CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
     );
+    const showNowLater =
+      this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
+    const showNowLaterNow = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
+      CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID
+    );
+    const showNowLaterLater = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
+      CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
+    );
+
+    const showWarningsCount = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_WARNINGS_COUNT,
+      CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID
+    );
 
     return html`<div class="summary">
-      <!-- First Row -->
-      <div class="item-container reverse">
-        <!-- Current Temperature -->
-        ${showCurrentTemp
-          ? html`<bwc-temperature-element
-              class="item"
-              .localize=${this.localize}
-              .temperature=${getCardEntityValueAsNumber(
-                this.hass,
-                this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
-              )}
-              .feelsLikeTemperature=${showFeelsLikeTemperature
-                ? getCardEntityValueAsNumber(
+      <!-- First Row (Current temp, weather icon and time/date) -->
+      ${showCurrentTemp || showWeatherIcon || showTime
+        ? html`<div class="item-container reverse">
+            <!-- Current Temperature -->
+            ${showCurrentTemp
+              ? html`<bwc-temperature-element
+                  class="item"
+                  .localize=${this.localize}
+                  .isLarge=${true}
+                  .value=${getCardEntityValueAsNumber(
                     this.hass,
-                    this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
-                  )
-                : undefined}
-            ></bwc-temperature-element>`
-          : nothing}
+                    this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
+                  )}
+                  .feelsLikeTemperature=${showFeelsLikeTemperature
+                    ? getCardEntityValueAsNumber(
+                        this.hass,
+                        this._cardEntities[
+                          CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
+                        ]
+                      )
+                    : undefined}
+                ></bwc-temperature-element>`
+              : nothing}
 
-        <!-- Weather Icon  -->
-        ${showWeatherIcon
-          ? html`<bwc-weather-icon-element
-              class=${classnames('item', {
-                center: showTime,
-                right: !showTime,
-              })}
-              .useHAWeatherIcons=${this._config[
-                CONFIG_PROP.USE_HA_WEATHER_ICONS
-              ] === true}
-              .weatherIcon=${getCardEntityValueAsString(
-                this.hass,
-                this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
-              )}
-            ></bwc-weather-icon-element>`
-          : nothing}
+            <!-- Weather Icon  -->
+            ${showWeatherIcon
+              ? html`<bwc-weather-icon-element
+                  class=${classnames('item', {
+                    center: showTime,
+                    right: !showTime,
+                  })}
+                  .useHAWeatherIcons=${this._config[
+                    CONFIG_PROP.USE_HA_WEATHER_ICONS
+                  ] === true}
+                  .weatherIcon=${getCardEntityValueAsString(
+                    this.hass,
+                    this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
+                  )}
+                ></bwc-weather-icon-element>`
+              : nothing}
 
-        <!-- Time -->
-        ${showTime
-          ? html`<bwc-time-date-element
-              class="item right"
-              .hass=${this.hass}
-              .showDate=${showDate}
-              .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
-              .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
-            ></bwc-time-date-element>`
-          : nothing}
-      </div>
+            <!-- Time -->
+            ${showTime
+              ? html`<bwc-time-date-element
+                  class="item right"
+                  .hass=${this.hass}
+                  .showDate=${showDate}
+                  .cardTimeEntity=${this._cardEntities[
+                    CONFIG_PROP.TIME_ENTITY_ID
+                  ]}
+                  .cardDateEntity=${this._cardEntities[
+                    CONFIG_PROP.DATE_ENTITY_ID
+                  ]}
+                ></bwc-time-date-element>`
+              : nothing}
+          </div> `
+        : nothing}
 
-      <!-- Second Row -->
-      <div class="item-container">
+      <!-- Second Row (now/later temps and warnings) -->
+      ${showNowLater || showWarningsCount
+        ? html`<div class="item-container justify-left">
+            ${showNowLaterNow
+              ? html`<bwc-temperature-element
+                  class="item left no-grow"
+                  .value=${getCardEntityValueAsNumber(
+                    this.hass,
+                    this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]
+                  )}
+                  .label=${getCardEntityValueAsString(
+                    this.hass,
+                    this._cardEntities[
+                      CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID
+                    ]
+                  )}
+                ></bwc-temperature-element> `
+              : nothing}
+            ${showNowLaterLater
+              ? html`<bwc-temperature-element
+                  class="item left no-grow"
+                  .value=${getCardEntityValueAsNumber(
+                    this.hass,
+                    this._cardEntities[
+                      CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
+                    ]
+                  )}
+                  .label=${getCardEntityValueAsString(
+                    this.hass,
+                    this._cardEntities[
+                      CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID
+                    ]
+                  )}
+                ></bwc-temperature-element> `
+              : nothing}
+            ${showWarningsCount
+              ? html`<bwc-warnings-icon-element
+                  class="item right"
+                  .value=${getCardEntityValueAsNumber(
+                    this.hass,
+                    this._cardEntities[CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]
+                  )}
+                ></bwc-warnings-icon-element> `
+              : nothing}
+          </div> `
+        : nothing}
+
+      <!-- Third and Fourth Row -->
+      <div class="item-container column">
         <bwc-value-label-element
-          .value=${'69°'}
-          .label=${'Min Temp'}
+          class="item"
+          value="0-1mm"
+          label="Rain"
         ></bwc-value-label-element>
 
         <bwc-value-label-element
-          .value=${'69°'}
-          .label=${'Max Temp'}
+          class="item"
+          value="Becoming Sunny"
         ></bwc-value-label-element>
-
-        <div class="item">TBD: Warnings</div>
-      </div>
-
-      <!-- Third Row -->
-      <div class="item-container">
-        <div class="item">TBD: Rain</div>
-      </div>
-
-      <!-- Fourth Row -->
-      <div class="item-container">
-        <div class="item">TBD: Summary</div>
       </div>
     </div> `;
   }

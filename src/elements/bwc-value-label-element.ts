@@ -10,8 +10,8 @@ export class ValueLabelElement extends LitElement {
 
   override render() {
     return html`<div class=${classNames('value-label-element')}>
-      <span class="value">${this.value}</span>
-      <span class="label">${this.label}</span>
+      ${this.value && html`<span class="value">${this.value}</span>`}
+      ${this.label && html`<span class="label">${this.label}</span>`}
     </div>`;
   }
 
@@ -19,11 +19,14 @@ export class ValueLabelElement extends LitElement {
     return css`
       ${elementStyles}
 
-      .value-label-element {
-        padding: var(--bwc-global-padding);
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+      :host {
+        .value-label-element {
+          padding: var(--bwc-global-padding);
+          padding-top: 0;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
 
         .value {
           font-size: var(--bwc-value-label-value-font-size);
@@ -40,6 +43,7 @@ export class ValueLabelElement extends LitElement {
           font-size: var(--bwc-value-label-label-font-size);
           line-height: 1em;
           width: fit-content;
+          white-space: nowrap;
         }
       }
     `;

@@ -11,8 +11,12 @@ import incrementBuildNumber from './tools/increment-build-number.mjs';
 
 const production = !process.env.ROLLUP_WATCH;
 
-// Set the log level based on the environment
+// Set the log level
 const logLevel = production ? 'warn' : 'debug';
+
+// Enable debug styles (outline sections in red etc...)
+// Enable this if you need to debug layout issues
+const enableDebugStyles = false;
 
 const serveOptions = {
   contentBase: ['./dist'],
@@ -45,6 +49,11 @@ export default {
       ),
       delimiters: ['', ''],
       "log.setLevel('info');": `log.setLevel('${logLevel}');`,
+    }),
+    replace({
+      'compileTimeDebugStyles = debugStyles': enableDebugStyles
+        ? 'compileTimeDebugStyles = debugStyles'
+        : 'compileTimeDebugStyles = css``',
     }),
     svg(),
     resolve(),

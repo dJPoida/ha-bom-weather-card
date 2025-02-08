@@ -10,6 +10,14 @@ export const containerStyles = css`
       flex-wrap: wrap-reverse;
     }
 
+    &.column {
+      flex-direction: column;
+    }
+
+    &.justify-left {
+      justify-content: flex-start;
+    }
+
     .item {
       --bwc-item-justify-content: flex-start;
       flex: 1;
@@ -26,6 +34,10 @@ export const containerStyles = css`
 
       &.right {
         --bwc-item-justify-content: flex-end;
+      }
+
+      &.no-grow {
+        flex-grow: 0;
       }
     }
   }

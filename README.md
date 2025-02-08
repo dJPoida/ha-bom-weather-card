@@ -198,11 +198,14 @@ All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants
 
 - Implement Tests
 - Move the TODO list to [Issues](https://github.com/dJPoida/ha-bom-weather-card/issues)
-- If the Observation Entity is not set, find the first weather entity when displaying the preview or on card creation
 - Split the README.md into smaller pieces aimed at contextual guidance for installation, development and contribution etc...
 - Find a way to use strict typing for Home Assistant Lit Components and remove the `no-unknown-tag-name` lit-plugin rule.
 - Limit the Entity Picker to only Weather Entities
+- Time/Date section
+  - AM/PM vs 24 Hour time selection
+  - Allow date format specification (or use HASS locale by default)
 - Styles
   - Allow removing the card border
   - Allow not using full color background
+  - Implement the transparent images that represent cloud / storms etc...
 - [Publish on HACS](https://www.hacs.xyz/docs/publish/)

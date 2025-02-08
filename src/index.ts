@@ -4,6 +4,7 @@ import './elements/bom-weather-card';
 import './elements/bwc-temperature-element';
 import './elements/bwc-time-date-element';
 import './elements/bwc-value-label-element';
+import './elements/bwc-warnings-icon-element';
 import './elements/bwc-weather-device-picker-element';
 import './elements/bwc-weather-icon-element';
 import {getLocalizer} from './localize/localize';

@@ -6,25 +6,29 @@ import {Localizer} from '../types/localizer.type';
 
 @customElement('bwc-temperature-element')
 export class temperatureElement extends LitElement {
-  @property({attribute: false}) public temperature!: number | undefined;
-  @property({attribute: false}) public feelsLikeTemperature!:
-    | number
-    | undefined;
-  @property() public weatherEntityId: string | undefined;
+  @property({type: Boolean}) public isLarge: boolean = false;
+  @property({type: Number}) public value!: number | undefined;
+  @property({type: Number}) public feelsLikeTemperature!: number | undefined;
+  @property() public label: string | undefined;
 
   @property() public localize!: Localizer;
 
   override render() {
-    return html`<div class=${classNames('temperature-element')}>
-      <span class="number">${this.temperature ?? '-'}&deg;</span>
+    return html`<div
+      class=${classNames('temperature-element', {large: this.isLarge})}
+    >
+      <span class="number">${this.value ?? '-'}&deg;</span>
       ${this.feelsLikeTemperature !== undefined
         ? html`
-            <span class="description"
+            <span class="feels-like"
               >${this.localize('card.feelsLike')}&nbsp;<strong
                 >${this.feelsLikeTemperature}&deg;</strong
               ></span
             >
           `
+        : nothing}
+      ${this.label !== undefined
+        ? html`<span class="label">${this.label}</span>`
         : nothing}
     </div>`;
   }
@@ -46,14 +50,24 @@ export class temperatureElement extends LitElement {
           width: fit-content;
         }
 
-        .number + .description {
+        &.large {
+          .number {
+            font-size: var(--bwc-temperature-number-large-font-size);
+          }
+        }
+
+        .number + .label,
+        .number + .feels-like,
+        .feels-like + .label {
           margin-top: 0.5em;
         }
 
-        .description {
+        .feels-like,
+        .label {
           font-size: var(--bwc-temperature-description-font-size);
           line-height: 1em;
           width: fit-content;
+          white-space: nowrap;
         }
       }
     `;

@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.961";
+var version = "0.0.1152";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -1065,6 +1065,14 @@ const containerStyles = i$4 `
       flex-wrap: wrap-reverse;
     }
 
+    &.column {
+      flex-direction: column;
+    }
+
+    &.justify-left {
+      justify-content: flex-start;
+    }
+
     .item {
       --bwc-item-justify-content: flex-start;
       flex: 1;
@@ -1082,6 +1090,10 @@ const containerStyles = i$4 `
       &.right {
         --bwc-item-justify-content: flex-end;
       }
+
+      &.no-grow {
+        flex-grow: 0;
+      }
     }
   }
 `;
@@ -1089,20 +1101,29 @@ const containerStyles = i$4 `
 const cssVariables = i$4 `
   :host {
     /* Bom Weather Card Custom CSS Variables */
+    --bwc-large-font-size: 4rem;
+    --bwc-medium-font-size: 2rem;
+    --bwc-regular-font-size: 1.2rem;
+
     --bwc-background-color-day-start: #63b0ff;
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
-    --bwc-time-date-time-font-size: 3.5rem;
-    --bwc-time-date-date-font-size: 1rem;
-    --bwc-temperature-number-font-size: 3.5rem;
-    --bwc-temperature-description-font-size: 1rem;
-    --bwc-value-label-value-font-size: 2rem;
-    --bwc-value-label-label-font-size: 1rem;
+    --bwc-time-date-time-font-size: var(--bwc-large-font-size);
+    --bwc-time-date-date-font-size: var(--bwc-regular-font-size);
+    --bwc-temperature-number-large-font-size: var(--bwc-large-font-size);
+    --bwc-temperature-number-font-size: var(--bwc-medium-font-size);
+    --bwc-temperature-description-font-size: var(--bwc-regular-font-size);
+    --bwc-value-label-value-font-size: var(--bwc-medium-font-size);
+    --bwc-value-label-label-font-size: var(--bwc-regular-font-size);
     --bwc-weather-icon-height: 7rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
     --bwc-item-container-height: 5rem;
+    --bwc-warning-no-warnings-background-color: #f5f5f5;
+    --bwc-warning-has-warnings-background-color: #fdb404;
+    --bwc-warning-icon-size: var(--bwc-medium-font-size);
+    --bwc-warning-font-size: var(--bwc-regular-font-size);
 
     /* Conditional Colors based on Day/Night and Dark/Light Theme */
     /* Light Theme / Day Mode */
@@ -1132,7 +1153,7 @@ const cssVariables = i$4 `
   }
 `;
 
-const debugStyles = i$4 `
+i$4 `
   :host {
     --bwc-debug-element-border: 1px solid red;
     --bwc-debug-container-border: 1px solid orange;
@@ -1155,15 +1176,21 @@ const debugStyles = i$4 `
   }
 `;
 
+const compileTimeDebugStyles = i$4``;
 const globalStyles = i$4 `
   :host {
     .bwc-debug {
       display: none;
     }
+
+    .bwc-icon svg {
+      height: 1em;
+      width: 1em;
+      line-height: 1em;
+    }
   }
 
-  /* Comment or uncomment this line to toggle debug styles */
-  ${debugStyles}
+  ${compileTimeDebugStyles}
 `;
 
 let BomWeatherCard = class BomWeatherCard extends r$2 {
@@ -1308,68 +1335,90 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         const showTime = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_TIME, CONFIG_PROP.TIME_ENTITY_ID);
         const showDate = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_DATE, CONFIG_PROP.DATE_ENTITY_ID);
         const showFeelsLikeTemperature = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_FEELS_LIKE_TEMP, CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID);
+        const showNowLater = this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
+        const showNowLaterNow = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_NOW_LATER_TEMPS, CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID);
+        const showNowLaterLater = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_NOW_LATER_TEMPS, CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID);
+        const showWarningsCount = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_WARNINGS_COUNT, CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID);
         return x `<div class="summary">
-      <!-- First Row -->
-      <div class="item-container reverse">
-        <!-- Current Temperature -->
-        ${showCurrentTemp
-            ? x `<bwc-temperature-element
-              class="item"
-              .localize=${this.localize}
-              .temperature=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID])}
-              .feelsLikeTemperature=${showFeelsLikeTemperature
-                ? getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID])
-                : undefined}
-            ></bwc-temperature-element>`
+      <!-- First Row (Current temp, weather icon and time/date) -->
+      ${showCurrentTemp || showWeatherIcon || showTime
+            ? x `<div class="item-container reverse">
+            <!-- Current Temperature -->
+            ${showCurrentTemp
+                ? x `<bwc-temperature-element
+                  class="item"
+                  .localize=${this.localize}
+                  .isLarge=${true}
+                  .value=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID])}
+                  .feelsLikeTemperature=${showFeelsLikeTemperature
+                    ? getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID])
+                    : undefined}
+                ></bwc-temperature-element>`
+                : E}
+
+            <!-- Weather Icon  -->
+            ${showWeatherIcon
+                ? x `<bwc-weather-icon-element
+                  class=${classNames('item', {
+                    center: showTime,
+                    right: !showTime,
+                })}
+                  .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
+                  .weatherIcon=${getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])}
+                ></bwc-weather-icon-element>`
+                : E}
+
+            <!-- Time -->
+            ${showTime
+                ? x `<bwc-time-date-element
+                  class="item right"
+                  .hass=${this.hass}
+                  .showDate=${showDate}
+                  .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
+                  .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
+                ></bwc-time-date-element>`
+                : E}
+          </div> `
             : E}
 
-        <!-- Weather Icon  -->
-        ${showWeatherIcon
-            ? x `<bwc-weather-icon-element
-              class=${classNames('item', {
-                center: showTime,
-                right: !showTime,
-            })}
-              .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
-              .weatherIcon=${getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])}
-            ></bwc-weather-icon-element>`
+      <!-- Second Row (now/later temps and warnings) -->
+      ${showNowLater || showWarningsCount
+            ? x `<div class="item-container justify-left">
+            ${showNowLaterNow
+                ? x `<bwc-temperature-element
+                  class="item left no-grow"
+                  .value=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID])}
+                  .label=${getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID])}
+                ></bwc-temperature-element> `
+                : E}
+            ${showNowLaterLater
+                ? x `<bwc-temperature-element
+                  class="item left no-grow"
+                  .value=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID])}
+                  .label=${getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID])}
+                ></bwc-temperature-element> `
+                : E}
+            ${showWarningsCount
+                ? x `<bwc-warnings-icon-element
+                  class="item right"
+                  .value=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID])}
+                ></bwc-warnings-icon-element> `
+                : E}
+          </div> `
             : E}
 
-        <!-- Time -->
-        ${showTime
-            ? x `<bwc-time-date-element
-              class="item right"
-              .hass=${this.hass}
-              .showDate=${showDate}
-              .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
-              .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
-            ></bwc-time-date-element>`
-            : E}
-      </div>
-
-      <!-- Second Row -->
-      <div class="item-container">
+      <!-- Third and Fourth Row -->
+      <div class="item-container column">
         <bwc-value-label-element
-          .value=${'69°'}
-          .label=${'Min Temp'}
+          class="item"
+          value="0-1mm"
+          label="Rain"
         ></bwc-value-label-element>
 
         <bwc-value-label-element
-          .value=${'69°'}
-          .label=${'Max Temp'}
+          class="item"
+          value="Becoming Sunny"
         ></bwc-value-label-element>
-
-        <div class="item">TBD: Warnings</div>
-      </div>
-
-      <!-- Third Row -->
-      <div class="item-container">
-        <div class="item">TBD: Rain</div>
-      </div>
-
-      <!-- Fourth Row -->
-      <div class="item-container">
-        <div class="item">TBD: Summary</div>
       </div>
     </div> `;
     }
@@ -1448,17 +1497,26 @@ const elementStyles = i$4 `
 `;
 
 let temperatureElement = class temperatureElement extends r$2 {
+    constructor() {
+        super(...arguments);
+        this.isLarge = false;
+    }
     render() {
-        return x `<div class=${classNames('temperature-element')}>
-      <span class="number">${this.temperature ?? '-'}&deg;</span>
+        return x `<div
+      class=${classNames('temperature-element', { large: this.isLarge })}
+    >
+      <span class="number">${this.value ?? '-'}&deg;</span>
       ${this.feelsLikeTemperature !== undefined
             ? x `
-            <span class="description"
+            <span class="feels-like"
               >${this.localize('card.feelsLike')}&nbsp;<strong
                 >${this.feelsLikeTemperature}&deg;</strong
               ></span
             >
           `
+            : E}
+      ${this.label !== undefined
+            ? x `<span class="label">${this.label}</span>`
             : E}
     </div>`;
     }
@@ -1479,28 +1537,41 @@ let temperatureElement = class temperatureElement extends r$2 {
           width: fit-content;
         }
 
-        .number + .description {
+        &.large {
+          .number {
+            font-size: var(--bwc-temperature-number-large-font-size);
+          }
+        }
+
+        .number + .label,
+        .number + .feels-like,
+        .feels-like + .label {
           margin-top: 0.5em;
         }
 
-        .description {
+        .feels-like,
+        .label {
           font-size: var(--bwc-temperature-description-font-size);
           line-height: 1em;
           width: fit-content;
+          white-space: nowrap;
         }
       }
     `;
     }
 };
 __decorate([
-    n({ attribute: false })
-], temperatureElement.prototype, "temperature", undefined);
+    n({ type: Boolean })
+], temperatureElement.prototype, "isLarge", undefined);
 __decorate([
-    n({ attribute: false })
+    n({ type: Number })
+], temperatureElement.prototype, "value", undefined);
+__decorate([
+    n({ type: Number })
 ], temperatureElement.prototype, "feelsLikeTemperature", undefined);
 __decorate([
     n()
-], temperatureElement.prototype, "weatherEntityId", undefined);
+], temperatureElement.prototype, "label", undefined);
 __decorate([
     n()
 ], temperatureElement.prototype, "localize", undefined);
@@ -1598,19 +1669,22 @@ TimeElement = __decorate([
 let ValueLabelElement = class ValueLabelElement extends r$2 {
     render() {
         return x `<div class=${classNames('value-label-element')}>
-      <span class="value">${this.value}</span>
-      <span class="label">${this.label}</span>
+      ${this.value && x `<span class="value">${this.value}</span>`}
+      ${this.label && x `<span class="label">${this.label}</span>`}
     </div>`;
     }
     static get styles() {
         return i$4 `
       ${elementStyles}
 
-      .value-label-element {
-        padding: var(--bwc-global-padding);
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+      :host {
+        .value-label-element {
+          padding: var(--bwc-global-padding);
+          padding-top: 0;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
 
         .value {
           font-size: var(--bwc-value-label-value-font-size);
@@ -1627,6 +1701,7 @@ let ValueLabelElement = class ValueLabelElement extends r$2 {
           font-size: var(--bwc-value-label-label-font-size);
           line-height: 1em;
           width: fit-content;
+          white-space: nowrap;
         }
       }
     `;
@@ -1641,6 +1716,91 @@ __decorate([
 ValueLabelElement = __decorate([
     t$1('bwc-value-label-element')
 ], ValueLabelElement);
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */class e extends i{constructor(i){if(super(i),this.it=E,i.type!==t.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=undefined,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o=e$1(e);
+
+var warning = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"Layer_1\" data-name=\"Layer 1\" viewBox=\"0 0 24 24\" width=\"512\" height=\"512\"><path d=\"M23.64,18.1L14.24,2.28c-.47-.8-1.3-1.28-2.24-1.28s-1.77,.48-2.23,1.28L.36,18.1h0c-.47,.82-.47,1.79,0,2.6s1.31,1.3,2.24,1.3H21.41c.94,0,1.78-.49,2.24-1.3s.46-1.78-.01-2.6Zm-10.64-.1h-2v-2h2v2Zm0-4h-2v-6h2v6Z\"/></svg>";
+
+const ICON = {
+    WARNING: warning,
+};
+
+let WarningsIconElement = class WarningsIconElement extends r$2 {
+    render() {
+        return x `<div
+      class=${classNames('warnings-icon-element', {
+            'has-warnings': this.value && this.value > 0,
+        })}
+    >
+      <div class="icon-value-wrapper">
+        <div class="bwc-icon">${x `${o(ICON.WARNING)}`}</div>
+        <div class="value-wrapper">
+          <span class="value">${this.value}</span>
+        </div>
+      </div>
+    </div>`;
+    }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+
+      .warnings-icon-element {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        padding: var(--bwc-global-padding);
+
+        .icon-value-wrapper {
+          background-color: var(--bwc-warning-no-warnings-background-color);
+          display: flex;
+
+          .bwc-icon {
+            padding: 0.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+              height: var(--bwc-warning-icon-size);
+              width: var(--bwc-warning-icon-size);
+            }
+          }
+
+          .value-wrapper {
+            padding: 0.5em;
+            font-size: var(--bwc-warning-font-size);
+            display: flex;
+            align-items: center;
+          }
+        }
+
+        &.has-warnings {
+          .icon-value-wrapper {
+            background-color: var(--bwc-warning-has-warnings-background-color);
+          }
+        }
+      }
+    `;
+    }
+};
+__decorate([
+    n({ type: Number })
+], WarningsIconElement.prototype, "value", undefined);
+WarningsIconElement = __decorate([
+    t$1('bwc-warnings-icon-element')
+], WarningsIconElement);
 
 // These strings are used to filter out weather-related entities
 // from the Home Assistant API response. If there are other weather-related
@@ -1788,19 +1948,6 @@ __decorate([
 WeatherDevicePickerElement = __decorate([
     t$1('bwc-weather-device-picker-element')
 ], WeatherDevicePickerElement);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */class e extends i{constructor(i){if(super(i),this.it=E,i.type!==t.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=undefined,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o=e$1(e);
 
 var clearNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><linearGradient id=\"a\" x1=\"21.92\" x2=\"38.52\" y1=\"18.75\" y2=\"47.52\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#86c3db\"/><stop offset=\".45\" stop-color=\"#86c3db\"/><stop offset=\"1\" stop-color=\"#5eafcf\"/><animateTransform attributeName=\"gradientTransform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"5 32 32; -15 32 32; 5 32 32\"/></linearGradient></defs><path fill=\"url(#a)\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\".5\" d=\"M46.66 36.2a16.66 16.66 0 01-16.78-16.55 16.29 16.29 0 01.55-4.15A16.56 16.56 0 1048.5 36.1c-.61.06-1.22.1-1.84.1z\"><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-5 32 32; 15 32 32; -5 32 32\"/></path></svg>";
 
