@@ -34,14 +34,14 @@ export const cssVariables = css`
     --bwc-background-color-end: var(--bwc-background-color-day-end);
 
     /* Light Theme / Night Mode */
-    &.night {
+    ha-card.night {
       --bwc-text-color: var(--text-primary-color);
       --bwc-background-color-start: var(--bwc-background-color-night-start);
       --bwc-background-color-end: var(--bwc-background-color-night-end);
     }
 
     /* Dark Theme / Day Mode */
-    &.dark-mode {
+    ha-card.dark-mode {
       color: var(--text-light-primary-color);
 
       /* Dark Theme / Night Mode */

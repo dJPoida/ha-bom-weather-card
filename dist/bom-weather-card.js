@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1152";
+var version = "0.0.1154";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -1132,14 +1132,14 @@ const cssVariables = i$4 `
     --bwc-background-color-end: var(--bwc-background-color-day-end);
 
     /* Light Theme / Night Mode */
-    &.night {
+    ha-card.night {
       --bwc-text-color: var(--text-primary-color);
       --bwc-background-color-start: var(--bwc-background-color-night-start);
       --bwc-background-color-end: var(--bwc-background-color-night-end);
     }
 
     /* Dark Theme / Day Mode */
-    &.dark-mode {
+    ha-card.dark-mode {
       color: var(--text-light-primary-color);
 
       /* Dark Theme / Night Mode */
