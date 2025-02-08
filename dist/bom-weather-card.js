@@ -1,4 +1,378 @@
-var version = "0.0.313";
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+var loglevel$1 = {exports: {}};
+
+/*
+* loglevel - https://github.com/pimterry/loglevel
+*
+* Copyright (c) 2013 Tim Perry
+* Licensed under the MIT license.
+*/
+var loglevel = loglevel$1.exports;
+
+var hasRequiredLoglevel;
+
+function requireLoglevel () {
+	if (hasRequiredLoglevel) return loglevel$1.exports;
+	hasRequiredLoglevel = 1;
+	(function (module) {
+		(function (root, definition) {
+		    if (module.exports) {
+		        module.exports = definition();
+		    } else {
+		        root.log = definition();
+		    }
+		}(loglevel, function () {
+
+		    // Slightly dubious tricks to cut down minimized file size
+		    var noop = function() {};
+		    var undefinedType = "undefined";
+		    var isIE = (typeof window !== undefinedType) && (typeof window.navigator !== undefinedType) && (
+		        /Trident\/|MSIE /.test(window.navigator.userAgent)
+		    );
+
+		    var logMethods = [
+		        "trace",
+		        "debug",
+		        "info",
+		        "warn",
+		        "error"
+		    ];
+
+		    var _loggersByName = {};
+		    var defaultLogger = null;
+
+		    // Cross-browser bind equivalent that works at least back to IE6
+		    function bindMethod(obj, methodName) {
+		        var method = obj[methodName];
+		        if (typeof method.bind === 'function') {
+		            return method.bind(obj);
+		        } else {
+		            try {
+		                return Function.prototype.bind.call(method, obj);
+		            } catch (e) {
+		                // Missing bind shim or IE8 + Modernizr, fallback to wrapping
+		                return function() {
+		                    return Function.prototype.apply.apply(method, [obj, arguments]);
+		                };
+		            }
+		        }
+		    }
+
+		    // Trace() doesn't print the message in IE, so for that case we need to wrap it
+		    function traceForIE() {
+		        if (console.log) {
+		            if (console.log.apply) {
+		                console.log.apply(console, arguments);
+		            } else {
+		                // In old IE, native console methods themselves don't have apply().
+		                Function.prototype.apply.apply(console.log, [console, arguments]);
+		            }
+		        }
+		        if (console.trace) console.trace();
+		    }
+
+		    // Build the best logging method possible for this env
+		    // Wherever possible we want to bind, not wrap, to preserve stack traces
+		    function realMethod(methodName) {
+		        if (methodName === 'debug') {
+		            methodName = 'log';
+		        }
+
+		        if (typeof console === undefinedType) {
+		            return false; // No method possible, for now - fixed later by enableLoggingWhenConsoleArrives
+		        } else if (methodName === 'trace' && isIE) {
+		            return traceForIE;
+		        } else if (console[methodName] !== undefined) {
+		            return bindMethod(console, methodName);
+		        } else if (console.log !== undefined) {
+		            return bindMethod(console, 'log');
+		        } else {
+		            return noop;
+		        }
+		    }
+
+		    // These private functions always need `this` to be set properly
+
+		    function replaceLoggingMethods() {
+		        /*jshint validthis:true */
+		        var level = this.getLevel();
+
+		        // Replace the actual methods.
+		        for (var i = 0; i < logMethods.length; i++) {
+		            var methodName = logMethods[i];
+		            this[methodName] = (i < level) ?
+		                noop :
+		                this.methodFactory(methodName, level, this.name);
+		        }
+
+		        // Define log.log as an alias for log.debug
+		        this.log = this.debug;
+
+		        // Return any important warnings.
+		        if (typeof console === undefinedType && level < this.levels.SILENT) {
+		            return "No console available for logging";
+		        }
+		    }
+
+		    // In old IE versions, the console isn't present until you first open it.
+		    // We build realMethod() replacements here that regenerate logging methods
+		    function enableLoggingWhenConsoleArrives(methodName) {
+		        return function () {
+		            if (typeof console !== undefinedType) {
+		                replaceLoggingMethods.call(this);
+		                this[methodName].apply(this, arguments);
+		            }
+		        };
+		    }
+
+		    // By default, we use closely bound real methods wherever possible, and
+		    // otherwise we wait for a console to appear, and then try again.
+		    function defaultMethodFactory(methodName, _level, _loggerName) {
+		        /*jshint validthis:true */
+		        return realMethod(methodName) ||
+		               enableLoggingWhenConsoleArrives.apply(this, arguments);
+		    }
+
+		    function Logger(name, factory) {
+		      // Private instance variables.
+		      var self = this;
+		      /**
+		       * The level inherited from a parent logger (or a global default). We
+		       * cache this here rather than delegating to the parent so that it stays
+		       * in sync with the actual logging methods that we have installed (the
+		       * parent could change levels but we might not have rebuilt the loggers
+		       * in this child yet).
+		       * @type {number}
+		       */
+		      var inheritedLevel;
+		      /**
+		       * The default level for this logger, if any. If set, this overrides
+		       * `inheritedLevel`.
+		       * @type {number|null}
+		       */
+		      var defaultLevel;
+		      /**
+		       * A user-specific level for this logger. If set, this overrides
+		       * `defaultLevel`.
+		       * @type {number|null}
+		       */
+		      var userLevel;
+
+		      var storageKey = "loglevel";
+		      if (typeof name === "string") {
+		        storageKey += ":" + name;
+		      } else if (typeof name === "symbol") {
+		        storageKey = undefined;
+		      }
+
+		      function persistLevelIfPossible(levelNum) {
+		          var levelName = (logMethods[levelNum] || 'silent').toUpperCase();
+
+		          if (typeof window === undefinedType || !storageKey) return;
+
+		          // Use localStorage if available
+		          try {
+		              window.localStorage[storageKey] = levelName;
+		              return;
+		          } catch (ignore) {}
+
+		          // Use session cookie as fallback
+		          try {
+		              window.document.cookie =
+		                encodeURIComponent(storageKey) + "=" + levelName + ";";
+		          } catch (ignore) {}
+		      }
+
+		      function getPersistedLevel() {
+		          var storedLevel;
+
+		          if (typeof window === undefinedType || !storageKey) return;
+
+		          try {
+		              storedLevel = window.localStorage[storageKey];
+		          } catch (ignore) {}
+
+		          // Fallback to cookies if local storage gives us nothing
+		          if (typeof storedLevel === undefinedType) {
+		              try {
+		                  var cookie = window.document.cookie;
+		                  var cookieName = encodeURIComponent(storageKey);
+		                  var location = cookie.indexOf(cookieName + "=");
+		                  if (location !== -1) {
+		                      storedLevel = /^([^;]+)/.exec(
+		                          cookie.slice(location + cookieName.length + 1)
+		                      )[1];
+		                  }
+		              } catch (ignore) {}
+		          }
+
+		          // If the stored level is not valid, treat it as if nothing was stored.
+		          if (self.levels[storedLevel] === undefined) {
+		              storedLevel = undefined;
+		          }
+
+		          return storedLevel;
+		      }
+
+		      function clearPersistedLevel() {
+		          if (typeof window === undefinedType || !storageKey) return;
+
+		          // Use localStorage if available
+		          try {
+		              window.localStorage.removeItem(storageKey);
+		          } catch (ignore) {}
+
+		          // Use session cookie as fallback
+		          try {
+		              window.document.cookie =
+		                encodeURIComponent(storageKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+		          } catch (ignore) {}
+		      }
+
+		      function normalizeLevel(input) {
+		          var level = input;
+		          if (typeof level === "string" && self.levels[level.toUpperCase()] !== undefined) {
+		              level = self.levels[level.toUpperCase()];
+		          }
+		          if (typeof level === "number" && level >= 0 && level <= self.levels.SILENT) {
+		              return level;
+		          } else {
+		              throw new TypeError("log.setLevel() called with invalid level: " + input);
+		          }
+		      }
+
+		      /*
+		       *
+		       * Public logger API - see https://github.com/pimterry/loglevel for details
+		       *
+		       */
+
+		      self.name = name;
+
+		      self.levels = { "TRACE": 0, "DEBUG": 1, "INFO": 2, "WARN": 3,
+		          "ERROR": 4, "SILENT": 5};
+
+		      self.methodFactory = factory || defaultMethodFactory;
+
+		      self.getLevel = function () {
+		          if (userLevel != null) {
+		            return userLevel;
+		          } else if (defaultLevel != null) {
+		            return defaultLevel;
+		          } else {
+		            return inheritedLevel;
+		          }
+		      };
+
+		      self.setLevel = function (level, persist) {
+		          userLevel = normalizeLevel(level);
+		          if (persist !== false) {  // defaults to true
+		              persistLevelIfPossible(userLevel);
+		          }
+
+		          // NOTE: in v2, this should call rebuild(), which updates children.
+		          return replaceLoggingMethods.call(self);
+		      };
+
+		      self.setDefaultLevel = function (level) {
+		          defaultLevel = normalizeLevel(level);
+		          if (!getPersistedLevel()) {
+		              self.setLevel(level, false);
+		          }
+		      };
+
+		      self.resetLevel = function () {
+		          userLevel = null;
+		          clearPersistedLevel();
+		          replaceLoggingMethods.call(self);
+		      };
+
+		      self.enableAll = function(persist) {
+		          self.setLevel(self.levels.TRACE, persist);
+		      };
+
+		      self.disableAll = function(persist) {
+		          self.setLevel(self.levels.SILENT, persist);
+		      };
+
+		      self.rebuild = function () {
+		          if (defaultLogger !== self) {
+		              inheritedLevel = normalizeLevel(defaultLogger.getLevel());
+		          }
+		          replaceLoggingMethods.call(self);
+
+		          if (defaultLogger === self) {
+		              for (var childName in _loggersByName) {
+		                _loggersByName[childName].rebuild();
+		              }
+		          }
+		      };
+
+		      // Initialize all the internal levels.
+		      inheritedLevel = normalizeLevel(
+		          defaultLogger ? defaultLogger.getLevel() : "WARN"
+		      );
+		      var initialLevel = getPersistedLevel();
+		      if (initialLevel != null) {
+		          userLevel = normalizeLevel(initialLevel);
+		      }
+		      replaceLoggingMethods.call(self);
+		    }
+
+		    /*
+		     *
+		     * Top-level API
+		     *
+		     */
+
+		    defaultLogger = new Logger();
+
+		    defaultLogger.getLogger = function getLogger(name) {
+		        if ((typeof name !== "symbol" && typeof name !== "string") || name === "") {
+		            throw new TypeError("You must supply a name when creating a logger.");
+		        }
+
+		        var logger = _loggersByName[name];
+		        if (!logger) {
+		            logger = _loggersByName[name] = new Logger(
+		                name,
+		                defaultLogger.methodFactory
+		            );
+		        }
+		        return logger;
+		    };
+
+		    // Grab the current global log variable in case of overwrite
+		    var _log = (typeof window !== undefinedType) ? window.log : undefined;
+		    defaultLogger.noConflict = function() {
+		        if (typeof window !== undefinedType &&
+		               window.log === defaultLogger) {
+		            window.log = _log;
+		        }
+
+		        return defaultLogger;
+		    };
+
+		    defaultLogger.getLoggers = function getLoggers() {
+		        return _loggersByName;
+		    };
+
+		    // ES6 default export, for compatibility
+		    defaultLogger['default'] = defaultLogger;
+
+		    return defaultLogger;
+		})); 
+	} (loglevel$1));
+	return loglevel$1.exports;
+}
+
+var loglevelExports = requireLoglevel();
+var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
+
+var version = "0.0.961";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -27,10 +401,6 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };
-
-function getDefaultExportFromCjs (x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
-}
 
 var classnames = {exports: {}};
 
@@ -166,22 +536,24 @@ const t$1=t=>(e,o)=>{ undefined!==o?o.addInitializer((()=>{customElements.define
 
 const CONFIG_PROP = {
     TITLE: 'title',
-    OBSERVATION_ENTITY_ID: 'observation_entity_id',
-    FORECAST_ENTITY_ID: 'forecast_entity_id',
-    USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
+    WEATHER_DEVICE_ID: 'weather_device_id',
+    SUMMARY_WEATHER_ENTITY_ID: 'summary_weather_entity_id',
     SHOW_CURRENT_TEMP: 'show_current_temp',
     CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
     SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
     FEELS_LIKE_TEMP_ENTITY_ID: 'feels_like_temp_entity_id',
+    SHOW_WEATHER_ICON: 'show_weather_icon',
+    WEATHER_ICON_ENTITY_ID: 'weather_icon_entity_id',
+    USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
     SHOW_TIME: 'show_time',
     TIME_ENTITY_ID: 'time_entity_id',
     SHOW_DATE: 'show_date',
     DATE_ENTITY_ID: 'date_entity_id',
-    SHOW_MIN_MAX_TEMPS: 'show_min_max_temps',
-    MIN_TEMP_ENTITY_ID: 'min_temp_entity_id',
-    MIN_LABEL_ENTITY_ID: 'min_label_entity_id',
-    MAX_TEMP_ENTITY_ID: 'max_temp_entity_id',
-    MAX_LABEL_ENTITY_ID: 'max_label_entity_id',
+    SHOW_NOW_LATER_TEMPS: 'show_now_later_temps',
+    NOW_LATER_NOW_TEMP_ENTITY_ID: 'now_later_now_temp_entity_id',
+    NOW_LATER_NOW_LABEL_ENTITY_ID: 'now_later_now_label_entity_id',
+    NOW_LATER_LATER_TEMP_ENTITY_ID: 'now_later_later_temp_entity_id',
+    NOW_LATER_LATER_LABEL_ENTITY_ID: 'now_later_later_label_entity_id',
     SHOW_WARNINGS_COUNT: 'show_warnings_count',
     WARNINGS_COUNT_ENTITY_ID: 'warning_count_entity_id',
     SHOW_RAIN_SUMMARY: 'show_rain_summary',
@@ -206,22 +578,24 @@ const DEFAULT_CARD_CONFIG = {
     index: undefined,
     view_index: undefined,
     [CONFIG_PROP.TITLE]: undefined,
-    [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
-    [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
-    [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
+    [CONFIG_PROP.WEATHER_DEVICE_ID]: undefined,
+    [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
     [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
     [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_WEATHER_ICON]: true,
+    [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: undefined,
+    [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
     [CONFIG_PROP.SHOW_TIME]: undefined,
     [CONFIG_PROP.TIME_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_DATE]: undefined,
     [CONFIG_PROP.DATE_ENTITY_ID]: undefined,
-    [CONFIG_PROP.SHOW_MIN_MAX_TEMPS]: true,
-    [CONFIG_PROP.MIN_TEMP_ENTITY_ID]: undefined,
-    [CONFIG_PROP.MIN_LABEL_ENTITY_ID]: undefined,
-    [CONFIG_PROP.MAX_TEMP_ENTITY_ID]: undefined,
-    [CONFIG_PROP.MAX_LABEL_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_NOW_LATER_TEMPS]: true,
+    [CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]: undefined,
+    [CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_WARNINGS_COUNT]: true,
     [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_RAIN_SUMMARY]: true,
@@ -238,8 +612,312 @@ const LANGUAGE = {
 };
 const DEFAULT_LANGUAGE = LANGUAGE.EN;
 
-const OBSERVATION_ATTRIBUTE = {
-    CURRENT_TEMPERATURE: 'temperature',
+/**
+ * These are the config props that represent card entities
+ */
+const CARD_ENTITIES = [
+    CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID,
+    CONFIG_PROP.CURRENT_TEMP_ENTITY_ID,
+    CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID,
+    CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
+    CONFIG_PROP.TIME_ENTITY_ID,
+    CONFIG_PROP.DATE_ENTITY_ID,
+    CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID,
+    CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID,
+    CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID,
+    CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID,
+    CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID,
+];
+
+const WEATHER_ENTITY_ATTRIBUTE = {
+    TEMPERATURE: 'temperature',
+    TEMPERATURE_UNIT: 'temperature_unit',
+    HUMIDITY: 'humidity',
+    PRESSURE_UNIT: 'pressure_unit',
+    WIND_BEARING: 'wind_bearing',
+    WIND_SPEED: 'wind_speed',
+    WIND_SPEED_UNIT: 'wind_speed_unit',
+    VISIBILITY_UNIT: 'visibility_unit',
+    PRECIPITATION_UNIT: 'precipitation_unit',
+    ATTRIBUTION: 'attribution',
+    ICON: 'icon',
+    FRIENDLY_NAME: 'friendly_name',
+    SUPPORTED_FEATURES: 'supported_features',
+};
+
+/**
+ * These are the rules used to infer the entity IDs from a device name or another entity's attribute.
+ * Use '%device_name%' as a placeholder for the device name.
+ */
+const INFERRED_ENTITY_RULES = {
+    // Infer the summary weather entity from the device name "weather.%device_name%"
+    [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'weather.%device_name%',
+        },
+    },
+    // Infer the current temperature from the summary weather entity's "temperature" attribute
+    [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: {
+        attributePattern: {
+            parentCardEntity: CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID,
+            attribute: WEATHER_ENTITY_ATTRIBUTE.TEMPERATURE,
+        },
+    },
+    // There is no inference for the feels like temperature. It must be defined in the card config.
+    [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: {},
+    // Infer the weather icon entity from the device name "weather.%device_name%"
+    [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'weather.%device_name%',
+        },
+    },
+    // Infer the time entity specifically to "sensor.time"
+    [CONFIG_PROP.TIME_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: undefined,
+            pattern: 'sensor.time',
+        },
+    },
+    // Infer the date entity specifically to "sensor.date"
+    [CONFIG_PROP.DATE_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: undefined,
+            pattern: 'sensor.date',
+        },
+    },
+    // Infer the "now/later" now temperature entity from the device name "sensor.%device_name%_now_temp_now"
+    [CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'sensor.%device_name%_now_temp_now',
+        },
+    },
+    // Infer the "now/later" now label entity from the device name "sensor.%device_name%_now_now_label"
+    [CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'sensor.%device_name%_now_now_label',
+        },
+    },
+    // Infer the "now/later" label temperature entity from the device name "sensor.%device_name%_now_temp_later"
+    [CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'sensor.%device_name%_now_temp_later',
+        },
+    },
+    // Infer the "now/later" later label entity from the device name "sensor.%device_name%_now_later_label"
+    [CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'sensor.%device_name%_now_later_label',
+        },
+    },
+    // Infer the warnings count entity from the device name "sensor.%device_name%_warnings"
+    [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: {
+        idPattern: {
+            parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+            pattern: 'sensor.%device_name%_warnings',
+        },
+    },
+};
+
+/**
+ * Fetch devices from the Home Assistant device registry
+ * @param hass
+ * @returns
+ */
+async function fetchDevices(hass) {
+    try {
+        return await hass.callWS({ type: 'config/device_registry/list' });
+    }
+    catch (error) {
+        log.error('Error fetching devices', error);
+        return [];
+    }
+}
+
+/**
+ * Fetch entities from the Home Assistant entity registry
+ * @param hass
+ * @param params
+ * @returns
+ */
+async function fetchEntities(hass, params) {
+    try {
+        const registeredEntities = await hass.callWS({
+            type: 'config/entity_registry/list',
+            domain: params?.domain,
+            area_id: params?.area_id,
+        });
+        if (params?.device_id) ;
+        return registeredEntities;
+    }
+    catch (error) {
+        log.error('Error fetching entities', error);
+        return [];
+    }
+}
+
+/**
+ * Calculate the actual entities to use in the card based on the configured
+ * weather devices and entities.
+ *
+ * @param props
+ * @returns
+ */
+const calculateCardEntities = async (hass, config) => {
+    // Start by iterating over all keys in the CARD_ENTITIES
+    // Any entities that are not set in the config will be set here
+    // User's specific config takes precedence
+    const cardEntities = {};
+    for (const key of CARD_ENTITIES) {
+        cardEntities[key] = {
+            entity_id: config[key],
+            attribute: undefined,
+            is_inferred: false,
+        };
+    }
+    // If hass is not available, return the card entities as they are
+    if (!hass)
+        return cardEntities;
+    // fetch all devices and entities from the hass instance
+    const devices = await fetchDevices(hass);
+    const entities = await fetchEntities(hass);
+    // Load the details of the observation device from Home Assistant
+    // const weatherDevice: HassDeviceRegistryEntry | undefined = devices.find(
+    //   (device) => device.id === config[CONFIG_PROP.WEATHER_DEVICE_ID]
+    // );
+    let loopEscape = 100;
+    let entitiesChanged = true;
+    while (entitiesChanged && loopEscape > 0) {
+        entitiesChanged = false;
+        loopEscape--;
+        // Iterate through each of the cardEntities which don't have an entity_id set
+        for (const key of CARD_ENTITIES) {
+            if (!cardEntities[key].entity_id) {
+                const rule = INFERRED_ENTITY_RULES[key];
+                if (rule?.idPattern) {
+                    let inferredEntityId = rule.idPattern.pattern;
+                    const parentDeviceConfigProp = rule.idPattern.parentDeviceConfigProp;
+                    let parentDevice;
+                    if (parentDeviceConfigProp) {
+                        parentDevice = devices.find((device) => device.id === config[parentDeviceConfigProp]);
+                        if (parentDevice && parentDevice.name) {
+                            const deviceNamePrefix = parentDevice.name
+                                .toLowerCase()
+                                .replace(' ', '_');
+                            inferredEntityId = inferredEntityId.replace('%device_name%', deviceNamePrefix);
+                        }
+                    }
+                    // Find the entity which matches the inferredEntityId
+                    const entity = entities.find((entity) => entity.entity_id === inferredEntityId);
+                    if (entity) {
+                        entitiesChanged = true;
+                        cardEntities[key] = {
+                            entity_id: inferredEntityId,
+                            attribute: undefined,
+                            is_inferred: true,
+                        };
+                    }
+                }
+                // Use another entities attribute instead of an entity itself
+                else if (rule?.attributePattern) {
+                    const parentCardEntity = cardEntities[rule.attributePattern.parentCardEntity];
+                    if (parentCardEntity?.entity_id) {
+                        entitiesChanged = true;
+                        cardEntities[key] = {
+                            entity_id: parentCardEntity.entity_id,
+                            attribute: rule.attributePattern.attribute,
+                            is_inferred: true,
+                        };
+                    }
+                }
+            }
+        }
+    }
+    return cardEntities;
+};
+
+/**
+ * Get the value of a card entity
+ * CardEntity.attribute will be used if set, otherwise the state will be used
+ *
+ * @param hass the Home Assistant instance
+ * @param cardEntity the entity to get the value of
+ *
+ * @returns
+ */
+const getCardEntityValue = (hass, cardEntity) => {
+    if (!hass || !cardEntity?.entity_id) {
+        return undefined;
+    }
+    const stateObj = hass.states[cardEntity.entity_id];
+    if (!stateObj) {
+        return undefined;
+    }
+    if (!cardEntity.attribute) {
+        return stateObj.state;
+    }
+    return stateObj.attributes[cardEntity.attribute];
+};
+
+/**
+ * Get the numeric value of a card entity
+ * CardEntity.attribute will be used if set, otherwise the state will be used
+ *
+ * @param hass the Home Assistant instance
+ * @param cardEntity the entity to get the value of
+ *
+ * @returns
+ */
+const getCardEntityValueAsNumber = (hass, cardEntity) => {
+    const value = getCardEntityValue(hass, cardEntity);
+    if (value === undefined) {
+        return undefined;
+    }
+    // If the value is already a number, return it
+    if (typeof value === 'number') {
+        return value;
+    }
+    // If the value is a string, attempt to parse it as a float
+    // Don't throw an error if it fails, just return undefined
+    if (typeof value === 'string') {
+        try {
+            return parseFloat(value);
+        }
+        catch {
+            return undefined;
+        }
+    }
+    return undefined;
+};
+
+/**
+ * Get the string value of a card entity
+ * CardEntity.attribute will be used if set, otherwise the state will be used
+ *
+ * @param hass the Home Assistant instance
+ * @param cardEntity the entity to get the value of
+ *
+ * @returns
+ */
+const getCardEntityValueAsString = (hass, cardEntity) => {
+    const value = getCardEntityValue(hass, cardEntity);
+    if (value === undefined) {
+        return undefined;
+    }
+    // If the value is already a string, return it
+    if (typeof value === 'string') {
+        return value;
+    }
+    // If the value is a number, convert it to a string
+    if (typeof value === 'number') {
+        return value.toString();
+    }
+    return undefined;
 };
 
 const isDayMode = (hass) => {
@@ -247,6 +925,22 @@ const isDayMode = (hass) => {
         ? hass.states['sun.sun'].state === 'above_horizon'
         : true;
 };
+
+const shouldRenderEntity = (config, cardEntities, toggleConfigProp, entityConfigProp) => {
+    if (!config[toggleConfigProp]) {
+        return false;
+    }
+    if (!cardEntities[entityConfigProp]?.entity_id) {
+        return false;
+    }
+    return true;
+};
+
+const subscribeForecast = (hass, entity_id, forecast_type, callback) => hass.connection.subscribeMessage(callback, {
+    type: 'weather/subscribe_forecast',
+    forecast_type,
+    entity_id,
+});
 
 var common = {
 	version: "Version",
@@ -258,35 +952,37 @@ var card = {
 };
 var editor = {
 	currentTemperatureEntity: "Current Temperature Entity",
+	dailyForecast: "Daily Forecast",
 	dateEntity: "Date Entity",
 	feelsLikeTemperatureEntity: "Feels Like Temperature Entity",
-	forecastEntity: "Forecast Entity",
-	observationEntity: "Observation Entity",
-	optional: "Optional",
-	required: "Required",
-	showDate: "Show Date",
-	showCurrentTemperature: "Show Current Temperature",
-	showFeelsLikeTemperature: "Show Feels Like Temperature",
-	showTime: "Show Time",
-	showMinMaxTemps: "Show Min/Max Temperatures",
-	dailyForecast: "Daily Forecast",
+	forecastSummaryEntity: "Forecast Summary Entity",
 	hourlyForecast: "Hourly Forecast",
-	minTempEntity: "Min Temp Entity",
-	maxTempEntity: "Min Temp Entity",
-	minLabelEntity: "Min Label Entity",
-	maxLabelEntity: "Min Label Entity",
+	laterLabelEntity: "Later Label Entity",
+	laterTempEntity: "Later Temp Entity",
+	nowLabelEntity: "Now Label Entity",
+	nowTempEntity: "Now Temp Entity",
+	optional: "Optional",
+	rainSummaryEntity: "Rain Summary Entity",
+	required: "Required",
+	showCurrentTemperature: "Show Current Temperature",
+	showDailyForecast: "Show Daily Forecast",
+	showDate: "Show Date",
+	showFeelsLikeTemperature: "Show Feels Like Temperature",
+	showForecastSummary: "Show Forecast Summary",
+	showHourlyForecast: "Show Hourly Forecast",
+	showNowLaterTemps: "Show Now/Later Temperatures",
+	showRainSummary: "Show Rain Summary",
+	showTime: "Show Time",
 	showWarningsCount: "Show Warnings Count",
-	warningsCountEntity: "Warnings Count Entity",
+	showWeatherIcon: "Show Weather Icon",
 	summary: "Summary",
+	summaryWeatherEntity: "Summary Weather Entity",
 	timeEntity: "Time Entity",
 	title: "Title",
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons",
-	showRainSummary: "Show Rain Summary",
-	rainSummaryEntity: "Rain Summary Entity",
-	showForecastSummary: "Show Forecast Summary",
-	forecastSummaryEntity: "Forecast Summary Entity",
-	showHourlyForecast: "Show Hourly Forecast",
-	showDailyForecast: "Show Daily Forecast"
+	warningsCountEntity: "Warnings Count Entity",
+	weatherIconEntity: "Weather Icon Entity",
+	weatherDevice: "Weather Device"
 };
 var error = {
 	invalidConfigProperty: "Invalid config property: {property}",
@@ -300,12 +996,12 @@ var en = {
 };
 
 var en$1 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  card: card,
-  common: common,
-  default: en,
-  editor: editor,
-  error: error
+	__proto__: null,
+	card: card,
+	common: common,
+	default: en,
+	editor: editor,
+	error: error
 });
 
 /**
@@ -474,11 +1170,12 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
     constructor() {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
+        this._cardEntities = {};
         this._dayMode = true;
         this._darkMode = false;
-        this.forecast = null;
         this.language = DEFAULT_LANGUAGE;
         this.localize = getLocalizer(this.language);
+        this._initialized = false;
     }
     static get styles() {
         return i$4 `
@@ -520,10 +1217,70 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         }
         this._config = { ...this._config, ...config };
     }
-    // Override the updated method
-    updated(changedProperties) {
-        // TODO: This may get too heavy if hass changes often
-        if (changedProperties.has('hass')) {
+    async _calculateCardEntities() {
+        this._cardEntities = await calculateCardEntities(this.hass, this._config);
+        log.debug('Card Entities Recalculated:', this._cardEntities);
+    }
+    /**
+     * Unsubscribe from Home Assistant forecast events
+     * Typically called when the card is disconnected from the DOM or
+     * when the card is updated with a new config
+     */
+    _unsubscribeForecastEvents() {
+        if (this._dailyForecastSubscribed) {
+            this._dailyForecastSubscribed.then((unsub) => unsub()).catch(() => { });
+            this._dailyForecastSubscribed = undefined;
+        }
+        //TODO: _hourlyForecastSubscribed
+    }
+    async _subscribeForecastEvents() {
+        this._unsubscribeForecastEvents();
+        if (!this.isConnected ||
+            !this._initialized ||
+            !this.hass ||
+            !this._config) {
+            return;
+        }
+        const forecastEntityId = this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id;
+        log.trace('_subscribeForecastEvents()', { forecastEntityId });
+        if (!forecastEntityId) {
+            log.warn('⚠️ No Forecast Entity specified. Skipping subscription to daily forecast.');
+            return;
+        }
+        this._dailyForecastSubscribed = subscribeForecast(this.hass, forecastEntityId, 'daily', //TODO: implement this "daily" | "hourly" | "twice_daily"
+        (event) => {
+            log.debug('Daily Forecast Subscribed.', event);
+            this._dailyForecastEvent = event;
+        });
+    }
+    firstUpdated() {
+        const initTasks = [this._calculateCardEntities];
+        Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
+            this._initialized = true;
+        });
+    }
+    updated(changedProps) {
+        super.updated(changedProps);
+        log.trace('updated():', changedProps);
+        // Subscribe to forecast events if not already subscribed
+        if (!this._dailyForecastSubscribed || changedProps.has('_config')) {
+            this._subscribeForecastEvents();
+        }
+        if (changedProps.has('_config')) {
+            log.debug('config changed', this._config);
+            this._calculateCardEntities();
+        }
+        if (changedProps.has('_dailyForecastEvent')) {
+            log.debug('_dailyForecastEvent changed', this._dailyForecastEvent);
+        }
+        const oldHass = changedProps.get('hass');
+        // const oldConfig = changedProps.get('_config') as CardConfig | undefined;
+        if (changedProps.has('hass') &&
+            !oldHass // ||
+        // (changedProps.has('_config') && !oldConfig) ||
+        // (changedProps.has('hass') && oldHass!.themes !== this.hass.themes) ||
+        // (changedProps.has('_config') && oldConfig!.theme !== this._config.theme)
+        ) {
             this._dayMode = isDayMode(this.hass);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this._darkMode = this.hass.themes.darkMode === true;
@@ -532,47 +1289,25 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
                 this.localize = getLocalizer(this.language);
             }
         }
-        else if (changedProperties.has('entity')) {
-            this.loadForecast();
-        }
     }
     connectedCallback() {
+        log.debug('✅ connected to DOM');
         super.connectedCallback();
-        this.loadForecast();
-    }
-    async loadForecast() {
-        this.forecast = this.getForecast() ?? (await this.fetchForecast());
-        this.requestUpdate();
-    }
-    getForecast() {
-        if (this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] === undefined) {
-            return null;
-        }
-        const stateObj = this.hass.states[this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]];
-        return stateObj?.attributes?.forecast || null;
-    }
-    async fetchForecast() {
-        try {
-            const result = await this.hass.callWS({
-                type: 'weather/get_forecast',
-                entity_id: this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID],
-                forecast_type: 'daily',
-            });
-            console.log(result);
-            return result.forecast;
-        }
-        catch (error) {
-            console.error('Error fetching forecast:', error);
-            return null;
+        if (this.hasUpdated && this._config && this.hass) {
+            this._subscribeForecastEvents();
         }
     }
-    renderSummary() {
-        const showCurrentTemp = this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] === true &&
-            this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] !== undefined;
-        const showTime = this._config[CONFIG_PROP.SHOW_TIME] === true &&
-            this._config[CONFIG_PROP.TIME_ENTITY_ID] !== undefined;
-        const showDate = this._config[CONFIG_PROP.SHOW_DATE] === true &&
-            this._config[CONFIG_PROP.DATE_ENTITY_ID] !== undefined;
+    disconnectedCallback() {
+        log.debug('❌ disconnected from DOM');
+        super.disconnectedCallback();
+        this._unsubscribeForecastEvents();
+    }
+    _renderSummary() {
+        const showCurrentTemp = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_CURRENT_TEMP, CONFIG_PROP.CURRENT_TEMP_ENTITY_ID);
+        const showWeatherIcon = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_WEATHER_ICON, CONFIG_PROP.WEATHER_ICON_ENTITY_ID);
+        const showTime = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_TIME, CONFIG_PROP.TIME_ENTITY_ID);
+        const showDate = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_DATE, CONFIG_PROP.DATE_ENTITY_ID);
+        const showFeelsLikeTemperature = shouldRenderEntity(this._config, this._cardEntities, CONFIG_PROP.SHOW_FEELS_LIKE_TEMP, CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID);
         return x `<div class="summary">
       <!-- First Row -->
       <div class="item-container reverse">
@@ -581,20 +1316,22 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             ? x `<bwc-temperature-element
               class="item"
               .localize=${this.localize}
-              .temperature=${this.hass.states[this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
+              .temperature=${getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID])}
+              .feelsLikeTemperature=${showFeelsLikeTemperature
+                ? getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID])
+                : undefined}
             ></bwc-temperature-element>`
             : E}
 
         <!-- Weather Icon  -->
-        ${showCurrentTemp
+        ${showWeatherIcon
             ? x `<bwc-weather-icon-element
               class=${classNames('item', {
                 center: showTime,
                 right: !showTime,
             })}
-              .hass=${this.hass}
               .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
-              .weatherEntityId=${this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]}
+              .weatherIcon=${getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])}
             ></bwc-weather-icon-element>`
             : E}
 
@@ -604,6 +1341,8 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
               class="item right"
               .hass=${this.hass}
               .showDate=${showDate}
+              .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
+              .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
             ></bwc-time-date-element>`
             : E}
       </div>
@@ -634,9 +1373,12 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
       </div>
     </div> `;
     }
-    // Render card
     render() {
-        console.log(this.hass.states[this._config.observation_entity_id], this.forecast);
+        log.trace('🖼️ Rendering card with state:', {
+            hass: this.hass,
+            config: this._config,
+            forecast: this._dailyForecastEvent,
+        });
         return x `<ha-card
       class="${classNames({
             day: this._dayMode,
@@ -651,7 +1393,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             : E}
 
       <!-- Summary -->
-      ${this.renderSummary()}
+      ${this._renderSummary()}
 
       <!-- Debug Info -->
       <div class="bwc-debug item-container">
@@ -659,6 +1401,11 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
       </div>
     </ha-card> `;
     }
+    /**
+     * Called by Home Assistant to get element responsible for rendering the card editor
+     *
+     * @returns {Promise<LitElement>} An instance of the BomWeatherCardEditor element
+     */
     static async getConfigElement() {
         await Promise.resolve().then(function () { return bomWeatherCardEditor; });
         return document.createElement('bom-weather-card-editor');
@@ -672,13 +1419,22 @@ __decorate([
 ], BomWeatherCard.prototype, "_config", undefined);
 __decorate([
     r()
+], BomWeatherCard.prototype, "_cardEntities", undefined);
+__decorate([
+    r()
 ], BomWeatherCard.prototype, "_dayMode", undefined);
 __decorate([
     r()
 ], BomWeatherCard.prototype, "_darkMode", undefined);
 __decorate([
     r()
-], BomWeatherCard.prototype, "forecast", undefined);
+], BomWeatherCard.prototype, "_weatherSummaryData", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "_dailyForecastSubscribed", undefined);
+__decorate([
+    r()
+], BomWeatherCard.prototype, "_dailyForecastEvent", undefined);
 BomWeatherCard = __decorate([
     t$1('bom-weather-card')
 ], BomWeatherCard);
@@ -694,12 +1450,16 @@ const elementStyles = i$4 `
 let temperatureElement = class temperatureElement extends r$2 {
     render() {
         return x `<div class=${classNames('temperature-element')}>
-      <span class="number">${this.temperature}&deg;</span>
-      <span class="description"
-        >${this.localize('card.feelsLike')}&nbsp;<strong
-          >${this.temperature}&deg;</strong
-        ></span
-      >
+      <span class="number">${this.temperature ?? '-'}&deg;</span>
+      ${this.feelsLikeTemperature !== undefined
+            ? x `
+            <span class="description"
+              >${this.localize('card.feelsLike')}&nbsp;<strong
+                >${this.feelsLikeTemperature}&deg;</strong
+              ></span
+            >
+          `
+            : E}
     </div>`;
     }
     static get styles() {
@@ -715,9 +1475,12 @@ let temperatureElement = class temperatureElement extends r$2 {
         .number {
           font-size: var(--bwc-temperature-number-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .number + .description {
+          margin-top: 0.5em;
         }
 
         .description {
@@ -733,6 +1496,9 @@ __decorate([
     n({ attribute: false })
 ], temperatureElement.prototype, "temperature", undefined);
 __decorate([
+    n({ attribute: false })
+], temperatureElement.prototype, "feelsLikeTemperature", undefined);
+__decorate([
     n()
 ], temperatureElement.prototype, "weatherEntityId", undefined);
 __decorate([
@@ -746,13 +1512,11 @@ let TimeElement = class TimeElement extends r$2 {
     constructor() {
         super(...arguments);
         this.showDate = false;
-        this._currentTime = '';
-        this._currentDate = '';
     }
     _update() {
         if (this.hass) {
-            this._currentTime = this.hass.states['sensor.time'].state;
-            this._currentDate = this.hass.states['sensor.date'].state;
+            this._currentTime = getCardEntityValueAsString(this.hass, this.cardTimeEntity);
+            this._currentDate = getCardEntityValueAsString(this.hass, this.cardDateEntity);
         }
     }
     connectedCallback() {
@@ -769,9 +1533,10 @@ let TimeElement = class TimeElement extends r$2 {
         }
     }
     render() {
+        const showDate = this.showDate && this._currentDate;
         return x `<div class=${classNames('time-date-element')}>
       <span class="time">${this._currentTime}</span>
-      ${this.showDate
+      ${showDate
             ? x `<span class="date">${this._currentDate}</span>`
             : E}
     </div>`;
@@ -790,9 +1555,12 @@ let TimeElement = class TimeElement extends r$2 {
         .time {
           font-size: var(--bwc-time-date-time-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .time + .date {
+          margin-top: 0.5em;
         }
 
         .date {
@@ -811,6 +1579,12 @@ __decorate([
 __decorate([
     n({ type: Boolean })
 ], TimeElement.prototype, "showDate", undefined);
+__decorate([
+    n({ type: Object })
+], TimeElement.prototype, "cardTimeEntity", undefined);
+__decorate([
+    n({ type: Object })
+], TimeElement.prototype, "cardDateEntity", undefined);
 __decorate([
     r()
 ], TimeElement.prototype, "_currentTime", undefined);
@@ -841,9 +1615,12 @@ let ValueLabelElement = class ValueLabelElement extends r$2 {
         .value {
           font-size: var(--bwc-value-label-value-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .value + .label {
+          margin-top: 0.5em;
         }
 
         .label {
@@ -864,6 +1641,153 @@ __decorate([
 ValueLabelElement = __decorate([
     t$1('bwc-value-label-element')
 ], ValueLabelElement);
+
+// These strings are used to filter out weather-related entities
+// from the Home Assistant API response. If there are other weather-related
+// entities that you would like to include, add them here.
+const weatherEntityStrings = [
+    'weather.',
+    'forecast',
+    'humidity',
+    'temperature',
+    'temp',
+    'wind',
+    'precipitation',
+    'rain',
+    'snow',
+    'storm',
+    'cloud',
+    'uv',
+    'sun',
+    'dew',
+    'barometer',
+    'pressure',
+    'visibility',
+    'air_quality',
+    'weather',
+];
+
+async function fetchWeatherDevices(hass) {
+    let devices = [];
+    let entities = [];
+    const weatherDeviceIds = new Set();
+    try {
+        // Fetch all devices
+        devices = await fetchDevices(hass);
+        // Fetch all entities
+        entities = await fetchEntities(hass);
+        // Filter weather-related entities
+        const weatherEntities = entities.filter((e) => e.device_id &&
+            e.device_id.length > 0 && // Ensure it's tied to a device
+            weatherEntityStrings.some((str) => e.entity_id.includes(str)));
+        // Collect device IDs that have weather-related entities
+        weatherEntities.forEach((e) => {
+            if (e.device_id)
+                weatherDeviceIds.add(e.device_id);
+        });
+        // Filter only devices that have at least one weather-related entity
+        return devices.filter((d) => weatherDeviceIds.has(d.id));
+    }
+    catch (error) {
+        log.error('Error fetching weather-related devices', error);
+        throw error;
+    }
+}
+
+let WeatherDevicePickerElement = class WeatherDevicePickerElement extends r$2 {
+    constructor() {
+        super(...arguments);
+        this.label = 'Select a Weather Device';
+        this.value = '';
+        this.boobs = '';
+        this._initialized = false;
+        this.weatherDevices = [];
+    }
+    firstUpdated() {
+        this._fetchWeatherDevices();
+        this._initialized = true;
+    }
+    // Override the updated method
+    updated(changedProperties) {
+        if (changedProperties.has('hass')) {
+            this._fetchWeatherDevices();
+        }
+    }
+    _handleOpenedChanged(event) {
+        // Fetch items only when the dropdown is opened
+        if (event.detail.value) {
+            this._fetchWeatherDevices();
+        }
+    }
+    async _fetchWeatherDevices() {
+        if (!this.hass)
+            return;
+        try {
+            this.weatherDevices = await fetchWeatherDevices(this.hass);
+        }
+        catch (e) {
+            log.error('Error fetching weather-related devices', e);
+        }
+    }
+    _handleValueChanged(event) {
+        if (!this._initialized)
+            return;
+        this.value = event.detail.value;
+        this.dispatchEvent(new CustomEvent('value-changed', {
+            detail: { value: this.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    render() {
+        return x `
+      <ha-combo-box
+        class="weather-device-picker-element"
+        label=${this.label}
+        .items=${this.weatherDevices.map((device) => ({
+            value: device.id, // Store device ID as value
+            label: device.name, // Display name
+        }))}
+        .value=${this.value ?? ''}
+        @value-changed=${this._handleValueChanged}
+        @opened-changed=${this._handleOpenedChanged}
+        allowCustomValue="true"
+      >
+      </ha-combo-box>
+    `;
+    }
+    _clearSelection() {
+        this.value = '';
+        this.dispatchEvent(new CustomEvent('value-changed', {
+            detail: { value: '' },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    static get styles() {
+        return i$4 `
+      ${elementStyles}
+    `;
+    }
+};
+__decorate([
+    n({ attribute: false })
+], WeatherDevicePickerElement.prototype, "hass", undefined);
+__decorate([
+    n({ type: String })
+], WeatherDevicePickerElement.prototype, "label", undefined);
+__decorate([
+    n({ type: String, reflect: true })
+], WeatherDevicePickerElement.prototype, "value", undefined);
+__decorate([
+    n({ type: String, reflect: true })
+], WeatherDevicePickerElement.prototype, "boobs", undefined);
+__decorate([
+    r()
+], WeatherDevicePickerElement.prototype, "weatherDevices", undefined);
+WeatherDevicePickerElement = __decorate([
+    t$1('bwc-weather-device-picker-element')
+], WeatherDevicePickerElement);
 
 /**
  * @license
@@ -891,6 +1815,8 @@ var hail = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w
 var lightningRainy = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 64 64\"><defs><linearGradient id=\"b\" x1=\"22.56\" x2=\"39.2\" y1=\"21.96\" y2=\"50.8\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".45\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"a\" x1=\"22.53\" x2=\"25.47\" y1=\"42.95\" y2=\"48.05\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#4286ee\"/><stop offset=\".45\" stop-color=\"#4286ee\"/><stop offset=\"1\" stop-color=\"#0950bc\"/></linearGradient><linearGradient id=\"c\" x1=\"29.53\" x2=\"32.47\" y1=\"42.95\" y2=\"48.05\" xlink:href=\"#a\"/><linearGradient id=\"d\" x1=\"36.53\" x2=\"39.47\" y1=\"42.95\" y2=\"48.05\" xlink:href=\"#a\"/><linearGradient id=\"e\" x1=\"26.74\" x2=\"35.76\" y1=\"37.88\" y2=\"53.52\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f7b23b\"/><stop offset=\".45\" stop-color=\"#f7b23b\"/><stop offset=\"1\" stop-color=\"#f59e0b\"/></linearGradient></defs><path fill=\"url(#b)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/><path fill=\"none\" stroke=\"url(#a)\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"><animateTransform attributeName=\"transform\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></path><path fill=\"none\" stroke=\"url(#c)\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"><animateTransform attributeName=\"transform\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.4s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></path><path fill=\"none\" stroke=\"url(#d)\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"><animateTransform attributeName=\"transform\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" type=\"translate\" values=\"1 -5; -2 10\"/><animate attributeName=\"opacity\" begin=\"-0.2s\" dur=\"0.7s\" repeatCount=\"indefinite\" values=\"0;1;1;0\"/></path><path fill=\"url(#e)\" stroke=\"#f6a823\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1; 1; 1; 1; 1; 1; 0.1; 1; 0.1; 1; 1; 0.1; 1; 0.1; 1\"/></path></svg>";
 
 var lightning = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><linearGradient id=\"a\" x1=\"22.56\" x2=\"39.2\" y1=\"21.96\" y2=\"50.8\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".45\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"b\" x1=\"26.74\" x2=\"35.76\" y1=\"37.88\" y2=\"53.52\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f7b23b\"/><stop offset=\".45\" stop-color=\"#f7b23b\"/><stop offset=\"1\" stop-color=\"#f59e0b\"/></linearGradient></defs><path fill=\"url(#a)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/><path fill=\"url(#b)\" stroke=\"#f6a823\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"><animate attributeName=\"opacity\" dur=\"2s\" repeatCount=\"indefinite\" values=\"1; 1; 1; 1; 1; 1; 0.1; 1; 0.1; 1; 1; 0.1; 1; 0.1; 1\"/></path></svg>";
+
+var mostlySunny = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><linearGradient id=\"a\" x1=\"16.5\" x2=\"21.5\" y1=\"19.67\" y2=\"28.33\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#fbbf24\"/><stop offset=\".45\" stop-color=\"#fbbf24\"/><stop offset=\"1\" stop-color=\"#f59e0b\"/></linearGradient><linearGradient id=\"b\" x1=\"22.56\" x2=\"39.2\" y1=\"21.96\" y2=\"50.8\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".45\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient></defs><circle cx=\"19\" cy=\"24\" r=\"5\" fill=\"url(#a)\" stroke=\"#f8af18\" stroke-miterlimit=\"10\" stroke-width=\".5\"/><path fill=\"none\" stroke=\"#fbbf24\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M19 15.67V12.5m0 23v-3.17m5.89-14.22l2.24-2.24M10.87 32.13l2.24-2.24m0-11.78l-2.24-2.24m16.26 16.26l-2.24-2.24M7.5 24h3.17m19.83 0h-3.17\"><animateTransform attributeName=\"transform\" dur=\"45s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 19 24; 360 19 24\"/></path><path fill=\"url(#b)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
 
 var partlyCloudyNight = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><defs><linearGradient id=\"a\" x1=\"13.58\" x2=\"24.15\" y1=\"15.57\" y2=\"33.87\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#86c3db\"/><stop offset=\".45\" stop-color=\"#86c3db\"/><stop offset=\"1\" stop-color=\"#5eafcf\"/><animateTransform attributeName=\"gradientTransform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"10 19.22 24.293; -10 19.22 24.293; 10 19.22 24.293\"/></linearGradient><linearGradient id=\"b\" x1=\"22.56\" x2=\"39.2\" y1=\"21.96\" y2=\"50.8\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".45\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient></defs><path fill=\"url(#a)\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\".5\" d=\"M29.33 26.68a10.61 10.61 0 01-10.68-10.54A10.5 10.5 0 0119 13.5a10.54 10.54 0 1011.5 13.11 11.48 11.48 0 01-1.17.07z\"><animateTransform attributeName=\"transform\" dur=\"10s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-10 19.22 24.293; 10 19.22 24.293; -10 19.22 24.293\"/></path><path fill=\"url(#b)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\".5\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></svg>";
 
@@ -920,6 +1846,8 @@ const WEATHER_ICON = {
     lightning: lightning,
     partlycloudy: partlyCloudy,
     'partlycloudy-night': partlyCloudyNight,
+    'mostly-sunny': mostlySunny,
+    mostly_sunny: mostlySunny,
     pouring: pouring,
     rainy: rainy,
     'snowy-rainy': snowyRainy,
@@ -935,14 +1863,12 @@ let WeatherIconElement = class WeatherIconElement extends r$2 {
         this.useHAWeatherIcons = false;
     }
     render() {
-        const weatherIconIndex = this.weatherEntityId
-            ? this.hass.states[this.weatherEntityId].state
-            : undefined;
+        if (!this.weatherIcon)
+            return E;
         return x `<div class=${classNames('weather-icon-element')}>
-      ${weatherIconIndex &&
-            (this.useHAWeatherIcons
-                ? x `<ha-icon icon="mdi:weather-${weatherIconIndex}"></ha-icon>`
-                : x `${o(WEATHER_ICON[weatherIconIndex])}`)}
+      ${this.useHAWeatherIcons
+            ? x `<ha-icon icon="mdi:weather-${this.weatherIcon}"></ha-icon>`
+            : x `${o(WEATHER_ICON[this.weatherIcon])}`}
     </div>`;
     }
     static get styles() {
@@ -968,11 +1894,8 @@ let WeatherIconElement = class WeatherIconElement extends r$2 {
     }
 };
 __decorate([
-    n({ attribute: false })
-], WeatherIconElement.prototype, "hass", undefined);
-__decorate([
-    n()
-], WeatherIconElement.prototype, "weatherEntityId", undefined);
+    n({ type: String })
+], WeatherIconElement.prototype, "weatherIcon", undefined);
 __decorate([
     n({ type: Boolean })
 ], WeatherIconElement.prototype, "useHAWeatherIcons", undefined);
@@ -981,6 +1904,11 @@ WeatherIconElement = __decorate([
 ], WeatherIconElement);
 
 const localizer = getLocalizer();
+// This line gets overwritten by the build process depending on the build environment
+log.setLevel('debug');
+// Add the log to the window object to enable logLevel changes in the console
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+window.bomWeatherCardLog = log;
 console.info(`%c  BOM-WEATHER-CARD \n%c  ${localizer('common.version')} ${version}    `, 'color: fuchsia; font-weight: bold; background: black', 'color: white; font-weight: bold; background: dimgray');
 window.customCards = window.customCards || [];
 window.customCards.push({
@@ -1041,8 +1969,17 @@ const DOMAIN = Object.freeze({
     WATER_HEATER: 'water_heater',
     WEATHER: 'weather',
 });
-const WEATHER_DOMAINS = [DOMAIN.WEATHER];
-const SENSOR_DOMAINS = [DOMAIN.SENSOR];
+[DOMAIN.WEATHER];
+[DOMAIN.SENSOR];
+
+const getCardEntityDetails = (cardEntity) => ({
+    entityId: cardEntity?.entity_id,
+    attribute: cardEntity?.is_inferred ? cardEntity?.attribute : undefined,
+    displayName: cardEntity?.is_inferred
+        ? `${cardEntity?.entity_id ?? ''}${cardEntity?.attribute ? `[${cardEntity?.attribute}]` : ''}`
+        : '',
+    isInferred: cardEntity?.is_inferred ?? false,
+});
 
 /**
  * Check if the target element is an `ha-switch` element
@@ -1060,7 +1997,7 @@ const isElementHaSwitch = (targetElement) => {
  * @param localize The localizer function
  *
  * @throws {Error} If the HA Entity Picker element fails to pre-load
- * */
+ */
 const preLoadEntityPicker = async (localize) => {
     if (!window.customElements.get('ha-entity-picker')) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1079,23 +2016,6 @@ const preLoadEntityPicker = async (localize) => {
     }
 };
 
-/**
- * Removes invalid properties from a config object (potentially
- * stored at an earlier time when the schema was different).
- */
-const removeInvalidConfigProperties = (config) => {
-    return config;
-    // const validKeys = new Set<A_CONFIG_PROP>(
-    //   Object.keys(DEFAULT_CARD_CONFIG) as A_CONFIG_PROP[]
-    // );
-    // return Object.keys(config).reduce((acc, key) => {
-    //   if (validKeys.has(key as A_CONFIG_PROP)) {
-    //     (acc as Record<string, unknown>)[key] = config[key as A_CONFIG_PROP];
-    //   }
-    //   return acc;
-    // }, {} as CardConfig);
-};
-
 // Take an array of strings and return a string with each element separated by a comma and wrapped in double quotes
 function toLitElementArray(arr) {
     return arr.map((e) => `"${e}"`).join(', ');
@@ -1105,6 +2025,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     constructor() {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
+        this._cardEntities = {};
         this.language = DEFAULT_LANGUAGE;
         this.localize = getLocalizer(this.language);
         this._initialized = false;
@@ -1153,6 +2074,11 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
       }
     `;
     }
+    firstUpdated() {
+        this._calculateCardEntities();
+        // Preload the required HA Components
+        preLoadEntityPicker(this.localize);
+    }
     // Override the updated method
     updated(changedProperties) {
         if (changedProperties.has('hass')) {
@@ -1161,23 +2087,70 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
                 this.localize = getLocalizer(this.language);
             }
         }
+        if (changedProperties.has('_config')) {
+            this._calculateCardEntities();
+        }
     }
     setConfig(newConfig) {
         // On first load, merge the default config with the user provided config
         if (!this._initialized) {
-            this._config = removeInvalidConfigProperties({
+            this._config = {
                 ...this._config,
                 ...newConfig,
-            });
+            };
             this._initialized = true;
         }
         else {
             this._config = { ...newConfig };
         }
-        // Preload the HA Entity Picker
-        preLoadEntityPicker(this.localize);
     }
-    renderEntityPicker(name, label, includeDomains = [], required = false) {
+    async _calculateCardEntities() {
+        this._cardEntities = await calculateCardEntities(this.hass, this._config);
+        log.debug('🔧 Card Entities Recalculated:', this._cardEntities);
+    }
+    _handleFieldChange(ev) {
+        const target = ev.target;
+        ev.stopPropagation();
+        const targetId = target.id;
+        if (!(targetId in DEFAULT_CARD_CONFIG)) {
+            throw new Error(this.localize('error.invalidConfigProperty', { property: targetId }));
+        }
+        const newValue = isElementHaSwitch(target)
+            ? target.checked
+            : target.value;
+        log.debug('🔧 Config Change:', newValue);
+        if (newValue === this._config[targetId])
+            return;
+        const newConfig = { ...this._config };
+        if (newValue === '' || newValue === undefined) {
+            delete newConfig[targetId];
+        }
+        else {
+            newConfig[targetId] = newValue;
+        }
+        const messageEvent = new CustomEvent('config-changed', {
+            detail: { config: newConfig },
+            bubbles: true,
+            composed: true,
+        });
+        this.dispatchEvent(messageEvent);
+    }
+    renderWeatherDevicePicker(name, label, required = false) {
+        return x `
+      <bwc-weather-device-picker-element
+        id="${name}"
+        .hass=${this.hass}
+        .label="${label} (${required
+            ? this.localize('editor.required')
+            : this.localize('editor.optional')})"
+        .value=${typeof this._config[name] === 'string'
+            ? this._config[name]
+            : ''}
+        @value-changed=${this._handleFieldChange}
+      ></bwc-weather-device-picker-element>
+    `;
+    }
+    renderEntityPicker(name, label, includeDomains = [], required = false, helper = undefined) {
         return x `
       <ha-entity-picker
         id="${name}"
@@ -1191,6 +2164,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         allow-custom-entity
         include-domains=${toLitElementArray(includeDomains)}
         .required=${required}
+        .helper=${helper}
       >
       </ha-entity-picker>
     `;
@@ -1229,65 +2203,111 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
       .outlined=${true}
       header="${this.localize('editor.summary')}"
     >
-      <!-- Use Default Weather Icons -->
-      ${this.renderBooleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))}
-
       <!-- Show Current Temperature -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_CURRENT_TEMP, this.localize('editor.showCurrentTemperature'))}
 
       <!-- Current Temp Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.CURRENT_TEMP_ENTITY_ID, this.localize('editor.currentTemperatureEntity'), SENSOR_DOMAINS)}
+      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
+            ? this.renderEntityPicker(CONFIG_PROP.CURRENT_TEMP_ENTITY_ID, this.localize('editor.currentTemperatureEntity'), [], false, getCardEntityDetails(this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]).displayName)
+            : E}
 
       <!-- Show Feels Like Temperature -->
-      ${this.renderBooleanField(CONFIG_PROP.SHOW_FEELS_LIKE_TEMP, this.localize('editor.showFeelsLikeTemperature'))}
+      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
+            ? this.renderBooleanField(CONFIG_PROP.SHOW_FEELS_LIKE_TEMP, this.localize('editor.showFeelsLikeTemperature'))
+            : E}
 
       <!-- Feels Like Temp Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID, this.localize('editor.feelsLikeTemperatureEntity'), SENSOR_DOMAINS)}
+      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] &&
+            this._config[CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]
+            ? this.renderEntityPicker(CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID, this.localize('editor.feelsLikeTemperatureEntity'), [], false, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
+                ?.is_inferred
+                ? this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
+                    .entity_id
+                : undefined)
+            : E}
+
+      <!-- Weather Icon -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_WEATHER_ICON, this.localize('editor.showWeatherIcon'))}
+
+      <!-- Weather Icon Entity -->
+      ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
+            ? this.renderEntityPicker(CONFIG_PROP.WEATHER_ICON_ENTITY_ID, this.localize('editor.weatherIconEntity'), [], false, getCardEntityDetails(this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]).displayName)
+            : E}
+
+      <!-- Use Default Weather Icons -->
+      ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
+            ? this.renderBooleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))
+            : E}
 
       <!-- Show Time -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_TIME, this.localize('editor.showTime'))}
 
       <!-- Time Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.TIME_ENTITY_ID, this.localize('editor.timeEntity'))}
+      ${this._config[CONFIG_PROP.SHOW_TIME]
+            ? this.renderEntityPicker(CONFIG_PROP.TIME_ENTITY_ID, this.localize('editor.timeEntity'), [], false, this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]?.is_inferred
+                ? this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID].entity_id
+                : undefined)
+            : E}
 
       <!-- Show Date -->
-      ${this.renderBooleanField(CONFIG_PROP.SHOW_DATE, this.localize('editor.showDate'))}
+      ${this._config[CONFIG_PROP.SHOW_TIME]
+            ? this.renderBooleanField(CONFIG_PROP.SHOW_DATE, this.localize('editor.showDate'))
+            : E}
 
       <!-- Date Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.DATE_ENTITY_ID, this.localize('editor.dateEntity'))}
+      ${this._config[CONFIG_PROP.SHOW_TIME] &&
+            this._config[CONFIG_PROP.SHOW_DATE]
+            ? this.renderEntityPicker(CONFIG_PROP.DATE_ENTITY_ID, this.localize('editor.dateEntity'), [], false, this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]?.is_inferred
+                ? this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID].entity_id
+                : undefined)
+            : E}
 
-      <!-- Show Min / Max Temps -->
-      ${this.renderBooleanField(CONFIG_PROP.SHOW_MIN_MAX_TEMPS, this.localize('editor.showMinMaxTemps'))}
+      <!-- Show Now / Later Temps -->
+      ${this.renderBooleanField(CONFIG_PROP.SHOW_NOW_LATER_TEMPS, this.localize('editor.showNowLaterTemps'))}
 
-      <!-- Min Temp Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.MIN_TEMP_ENTITY_ID, this.localize('editor.minTempEntity'))}
+      <!-- Now Temp Entity -->
+      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+            ? this.renderEntityPicker(CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID, this.localize('editor.nowTempEntity'))
+            : E}
 
-      <!-- Min Label Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.MIN_LABEL_ENTITY_ID, this.localize('editor.minLabelEntity'))}
+      <!-- Now Label Entity -->
+      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+            ? this.renderEntityPicker(CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID, this.localize('editor.nowLabelEntity'))
+            : E}
 
-      <!-- Max Temp Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.MAX_TEMP_ENTITY_ID, this.localize('editor.maxTempEntity'))}
+      <!-- Later Temp Entity -->
+      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+            ? this.renderEntityPicker(CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID, this.localize('editor.laterTempEntity'))
+            : E}
 
-      <!-- Max Label Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.MAX_LABEL_ENTITY_ID, this.localize('editor.maxLabelEntity'))}
+      <!-- Later Label Entity -->
+      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+            ? this.renderEntityPicker(CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID, this.localize('editor.laterLabelEntity'))
+            : E}
 
       <!-- Show Warnings Count -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_WARNINGS_COUNT, this.localize('editor.showWarningsCount'))}
 
       <!-- Warnings Count Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID, this.localize('editor.warningsCountEntity'))}
+      ${this._config[CONFIG_PROP.SHOW_WARNINGS_COUNT]
+            ? this.renderEntityPicker(CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID, this.localize('editor.warningsCountEntity'))
+            : E}
 
       <!-- Show Rain Summary -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_RAIN_SUMMARY, this.localize('editor.showRainSummary'))}
 
       <!-- Rain Summary Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID, this.localize('editor.rainSummaryEntity'))}
+      ${this._config[CONFIG_PROP.SHOW_RAIN_SUMMARY]
+            ? this.renderEntityPicker(CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID, this.localize('editor.rainSummaryEntity'))
+            : E}
 
       <!-- Show Forecast Summary -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_FORECAST_SUMMARY, this.localize('editor.showForecastSummary'))}
 
       <!-- Forecast Summary Entity -->
-      ${this.renderEntityPicker(CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID, this.localize('editor.forecastSummaryEntity'))}
+      ${this._config[CONFIG_PROP.SHOW_FORECAST_SUMMARY]
+            ? this.renderEntityPicker(CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID, this.localize('editor.forecastSummaryEntity'))
+            : E}
     </ha-expansion-panel>`;
     }
     renderHourlyForecastOptionsPanel() {
@@ -1309,16 +2329,19 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     </ha-expansion-panel>`;
     }
     render() {
+        if (!this._config || !this._initialized)
+            return x ``;
+        const weatherEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
         return x `<div class="card-config">
       <div class="item-group">
         <!-- Title -->
-        ${this.renderTextField(CONFIG_PROP.TITLE, this.localize('editor.title'), false)}
+        ${this.renderTextField(CONFIG_PROP.TITLE, this.localize('editor.title'))}
 
-        <!-- Observation Entity ID -->
-        ${this.renderEntityPicker(CONFIG_PROP.OBSERVATION_ENTITY_ID, this.localize('editor.observationEntity'))}
+        <!-- Weather Device -->
+        ${this.renderWeatherDevicePicker(CONFIG_PROP.WEATHER_DEVICE_ID, this.localize('editor.weatherDevice'), true)}
 
         <!-- Forecast Entity ID -->
-        ${this.renderEntityPicker(CONFIG_PROP.FORECAST_ENTITY_ID, this.localize('editor.forecastEntity'), WEATHER_DOMAINS)}
+        ${this.renderEntityPicker(CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID, this.localize('editor.summaryWeatherEntity'), [DOMAIN.WEATHER], false, weatherEntityDetails.displayName)}
       </div>
 
       <!-- Summary Options Panel -->
@@ -1329,35 +2352,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
 
       <!-- Daily Forecast Options Panel -->
       ${this.renderDailyForecastOptionsPanel()}
-
-      <!-- Show Current Temperature -->
     </div> `;
-    }
-    _handleFieldChange(ev) {
-        const target = ev.target;
-        ev.stopPropagation();
-        const targetId = target.id;
-        if (!(targetId in DEFAULT_CARD_CONFIG)) {
-            throw new Error(this.localize('error.invalidConfigProperty', { property: targetId }));
-        }
-        const newValue = isElementHaSwitch(target)
-            ? target.checked
-            : target.value;
-        if (newValue === this._config[targetId])
-            return;
-        const newConfig = { ...this._config };
-        if (newValue === '' || newValue == undefined) {
-            delete newConfig[targetId];
-        }
-        else {
-            newConfig[targetId] = newValue;
-        }
-        const messageEvent = new CustomEvent('config-changed', {
-            detail: { config: newConfig },
-            bubbles: true,
-            composed: true,
-        });
-        this.dispatchEvent(messageEvent);
     }
 };
 __decorate([
@@ -1366,12 +2361,15 @@ __decorate([
 __decorate([
     r()
 ], BomWeatherCardEditor.prototype, "_config", undefined);
+__decorate([
+    r()
+], BomWeatherCardEditor.prototype, "_cardEntities", undefined);
 BomWeatherCardEditor = __decorate([
     t$1('bom-weather-card-editor')
 ], BomWeatherCardEditor);
 
 var bomWeatherCardEditor = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  get BomWeatherCardEditor () { return BomWeatherCardEditor; }
+	__proto__: null,
+	get BomWeatherCardEditor () { return BomWeatherCardEditor; }
 });
 //# sourceMappingURL=bom-weather-card.js.map

@@ -1,5 +1,5 @@
 import {CardConfig} from '../types/card-config.type';
-import {CONFIG_PROP} from './card-config-prop.const';
+import {CONFIG_PROP} from './config-prop.const';
 
 /**
  * Default card configuration
@@ -16,10 +16,10 @@ export const DEFAULT_CARD_CONFIG: CardConfig = {
   view_index: undefined,
 
   [CONFIG_PROP.TITLE]: undefined,
-  [CONFIG_PROP.OBSERVATION_ENTITY_ID]: undefined,
-  [CONFIG_PROP.FORECAST_ENTITY_ID]: undefined,
 
-  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
+  [CONFIG_PROP.WEATHER_DEVICE_ID]: undefined,
+
+  [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: undefined,
 
   [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
   [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
@@ -27,17 +27,21 @@ export const DEFAULT_CARD_CONFIG: CardConfig = {
   [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
   [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: undefined,
 
+  [CONFIG_PROP.SHOW_WEATHER_ICON]: true,
+  [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: undefined,
+  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
+
   [CONFIG_PROP.SHOW_TIME]: undefined,
   [CONFIG_PROP.TIME_ENTITY_ID]: undefined,
 
   [CONFIG_PROP.SHOW_DATE]: undefined,
   [CONFIG_PROP.DATE_ENTITY_ID]: undefined,
 
-  [CONFIG_PROP.SHOW_MIN_MAX_TEMPS]: true,
-  [CONFIG_PROP.MIN_TEMP_ENTITY_ID]: undefined,
-  [CONFIG_PROP.MIN_LABEL_ENTITY_ID]: undefined,
-  [CONFIG_PROP.MAX_TEMP_ENTITY_ID]: undefined,
-  [CONFIG_PROP.MAX_LABEL_ENTITY_ID]: undefined,
+  [CONFIG_PROP.SHOW_NOW_LATER_TEMPS]: true,
+  [CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]: undefined,
+  [CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]: undefined,
+  [CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]: undefined,
+  [CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]: undefined,
 
   [CONFIG_PROP.SHOW_WARNINGS_COUNT]: true,
   [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: undefined,

@@ -1,5 +1,5 @@
 import {LovelaceCardConfig} from 'custom-card-helpers';
-import {CONFIG_PROP} from '../constants/card-config-prop.const';
+import {CONFIG_PROP} from '../constants/config-prop.const';
 
 // Create a new type that includes all properties of LovelaceCardConfig except the index signature
 type StrictLovelaceCardConfig = Pick<
@@ -9,10 +9,10 @@ type StrictLovelaceCardConfig = Pick<
 
 export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.TITLE]: string | undefined;
-  [CONFIG_PROP.OBSERVATION_ENTITY_ID]: string | undefined;
-  [CONFIG_PROP.FORECAST_ENTITY_ID]: string | undefined;
 
-  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: boolean | undefined;
+  [CONFIG_PROP.WEATHER_DEVICE_ID]: string | undefined;
+
+  [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: string | undefined;
 
   [CONFIG_PROP.SHOW_CURRENT_TEMP]: boolean | undefined;
   [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: string | undefined;
@@ -20,17 +20,21 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: boolean | undefined;
   [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: string | undefined;
 
+  [CONFIG_PROP.SHOW_WEATHER_ICON]: boolean | undefined;
+  [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.USE_HA_WEATHER_ICONS]: boolean | undefined;
+
   [CONFIG_PROP.SHOW_TIME]: boolean | undefined;
   [CONFIG_PROP.TIME_ENTITY_ID]: string | undefined;
 
   [CONFIG_PROP.SHOW_DATE]: boolean | undefined;
   [CONFIG_PROP.DATE_ENTITY_ID]: string | undefined;
 
-  [CONFIG_PROP.SHOW_MIN_MAX_TEMPS]: boolean | undefined;
-  [CONFIG_PROP.MIN_TEMP_ENTITY_ID]: string | undefined;
-  [CONFIG_PROP.MIN_LABEL_ENTITY_ID]: string | undefined;
-  [CONFIG_PROP.MAX_TEMP_ENTITY_ID]: string | undefined;
-  [CONFIG_PROP.MAX_LABEL_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.SHOW_NOW_LATER_TEMPS]: boolean | undefined;
+  [CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]: string | undefined;
 
   [CONFIG_PROP.SHOW_WARNINGS_COUNT]: boolean | undefined;
   [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: string | undefined;

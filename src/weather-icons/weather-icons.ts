@@ -5,8 +5,9 @@ import fog from './fog.svg';
 import hail from './hail.svg';
 import lightningRainy from './lightning-rainy.svg';
 import lightning from './lightning.svg';
-import partlyCloudyNight from './partlycloudy-night.svg';
-import partlyCloudy from './partlycloudy.svg';
+import mostlySunny from './mostly-sunny.svg';
+import partlyCloudyNight from './partly-cloudy-night.svg';
+import partlyCloudy from './partly-cloudy.svg';
 import pouring from './pouring.svg';
 import rainy from './rainy.svg';
 import snowyRainy from './snowy-rainy.svg';
@@ -25,6 +26,8 @@ export const WEATHER_ICON: Record<string, string> = {
   lightning: lightning,
   partlycloudy: partlyCloudy,
   'partlycloudy-night': partlyCloudyNight,
+  'mostly-sunny': mostlySunny,
+  mostly_sunny: mostlySunny,
   pouring: pouring,
   rainy: rainy,
   'snowy-rainy': snowyRainy,

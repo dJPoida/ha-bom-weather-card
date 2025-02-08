@@ -2,22 +2,33 @@ import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
+import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
 import {elementStyles} from '../styles/element.style';
+import {CardEntity} from '../types/card-entities.type';
 
 @customElement('bwc-time-date-element')
 export class TimeElement extends LitElement {
   @property({attribute: false}) public hass!: HomeAssistant;
   @property({type: Boolean}) public showDate: boolean = false;
 
+  @property({type: Object}) public cardTimeEntity!: CardEntity;
+  @property({type: Object}) public cardDateEntity!: CardEntity;
+
   private _interval: number | undefined;
 
-  @state() _currentTime: string = '';
-  @state() _currentDate: string = '';
+  @state() _currentTime: string | undefined;
+  @state() _currentDate: string | undefined;
 
   _update() {
     if (this.hass) {
-      this._currentTime = this.hass.states['sensor.time'].state;
-      this._currentDate = this.hass.states['sensor.date'].state;
+      this._currentTime = getCardEntityValueAsString(
+        this.hass,
+        this.cardTimeEntity
+      );
+      this._currentDate = getCardEntityValueAsString(
+        this.hass,
+        this.cardDateEntity
+      );
     }
   }
 
@@ -39,9 +50,11 @@ export class TimeElement extends LitElement {
   }
 
   override render() {
+    const showDate = this.showDate && this._currentDate;
+
     return html`<div class=${classNames('time-date-element')}>
       <span class="time">${this._currentTime}</span>
-      ${this.showDate
+      ${showDate
         ? html`<span class="date">${this._currentDate}</span>`
         : nothing}
     </div>`;
@@ -61,9 +74,12 @@ export class TimeElement extends LitElement {
         .time {
           font-size: var(--bwc-time-date-time-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .time + .date {
+          margin-top: 0.5em;
         }
 
         .date {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import classnames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
 import {
@@ -7,34 +6,47 @@ import {
   html,
   LitElement,
   nothing,
+  PropertyValues,
   TemplateResult,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
+import log from 'loglevel';
 import {version} from '../../package.json';
-import {CONFIG_PROP} from '../constants/card-config-prop.const';
+import {CONFIG_PROP} from '../constants/config-prop.const';
 import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
 import {A_LANGUAGE, DEFAULT_LANGUAGE} from '../constants/languages.const';
-import {OBSERVATION_ATTRIBUTE} from '../constants/observation-attributes.const';
+import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
+import {getCardEntityValueAsNumber} from '../helpers/get-card-entity-value-as-number';
+import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
 import {isDayMode} from '../helpers/is-day-mode.helper';
+import {shouldRenderEntity} from '../helpers/should-render-entity.helper';
+import {ForecastEvent, subscribeForecast} from '../lib/weather';
 import {getLocalizer} from '../localize/localize';
 import {containerStyles} from '../styles/container.style';
 import {cssVariables} from '../styles/css-variables.style';
 import {globalStyles} from '../styles/global.style';
 import {CardConfig} from '../types/card-config.type';
+import {CardEntities} from '../types/card-entities.type';
+import {WeatherSummaryData} from '../types/weather-summary-data.type';
 
 @customElement('bom-weather-card')
 export class BomWeatherCard extends LitElement {
   @property({attribute: false}) public hass!: HomeAssistant;
 
   @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
+  @state() _cardEntities: CardEntities = {} as CardEntities;
 
   @state() _dayMode: boolean = true;
   @state() _darkMode: boolean = false;
 
-  @state() private forecast: any[] | null = null;
+  @state() _weatherSummaryData: WeatherSummaryData | undefined;
+
+  @state() private _dailyForecastSubscribed?: Promise<() => void>;
+  @state() private _dailyForecastEvent?: ForecastEvent;
 
   private language: A_LANGUAGE = DEFAULT_LANGUAGE;
   private localize = getLocalizer(this.language);
+  private _initialized = false;
 
   static override get styles(): CSSResultGroup {
     return css`
@@ -79,12 +91,98 @@ export class BomWeatherCard extends LitElement {
     this._config = {...this._config, ...config};
   }
 
-  // Override the updated method
-  protected override updated(
-    changedProperties: Map<string | number | symbol, unknown>
-  ): void {
-    // TODO: This may get too heavy if hass changes often
-    if (changedProperties.has('hass')) {
+  private async _calculateCardEntities(): Promise<void> {
+    this._cardEntities = await calculateCardEntities(this.hass, this._config);
+
+    log.debug('Card Entities Recalculated:', this._cardEntities);
+  }
+
+  /**
+   * Unsubscribe from Home Assistant forecast events
+   * Typically called when the card is disconnected from the DOM or
+   * when the card is updated with a new config
+   */
+  private _unsubscribeForecastEvents() {
+    if (this._dailyForecastSubscribed) {
+      this._dailyForecastSubscribed.then((unsub) => unsub()).catch(() => {});
+      this._dailyForecastSubscribed = undefined;
+    }
+
+    //TODO: _hourlyForecastSubscribed
+  }
+
+  private async _subscribeForecastEvents() {
+    this._unsubscribeForecastEvents();
+
+    if (
+      !this.isConnected ||
+      !this._initialized ||
+      !this.hass ||
+      !this._config
+    ) {
+      return;
+    }
+
+    const forecastEntityId =
+      this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id;
+
+    log.trace('_subscribeForecastEvents()', {forecastEntityId});
+
+    if (!forecastEntityId) {
+      log.warn(
+        '⚠️ No Forecast Entity specified. Skipping subscription to daily forecast.'
+      );
+      return;
+    }
+
+    this._dailyForecastSubscribed = subscribeForecast(
+      this.hass!,
+      forecastEntityId,
+      'daily', //TODO: implement this "daily" | "hourly" | "twice_daily"
+      (event) => {
+        log.debug('Daily Forecast Subscribed.', event);
+        this._dailyForecastEvent = event;
+      }
+    );
+  }
+
+  protected override firstUpdated(): void {
+    const initTasks = [this._calculateCardEntities];
+
+    Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
+      this._initialized = true;
+    });
+  }
+
+  protected override updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+    log.trace('updated():', changedProps);
+
+    // Subscribe to forecast events if not already subscribed
+    if (!this._dailyForecastSubscribed || changedProps.has('_config')) {
+      this._subscribeForecastEvents();
+    }
+
+    if (changedProps.has('_config')) {
+      log.debug('config changed', this._config);
+
+      this._calculateCardEntities();
+    }
+
+    if (changedProps.has('_dailyForecastEvent')) {
+      log.debug('_dailyForecastEvent changed', this._dailyForecastEvent);
+    }
+
+    const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
+    // const oldConfig = changedProps.get('_config') as CardConfig | undefined;
+
+    if (
+      changedProps.has('hass') &&
+      !oldHass // ||
+      // (changedProps.has('_config') && !oldConfig) ||
+      // (changedProps.has('hass') && oldHass!.themes !== this.hass.themes) ||
+      // (changedProps.has('_config') && oldConfig!.theme !== this._config.theme)
+    ) {
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this._darkMode = (this.hass.themes as any).darkMode === true;
@@ -93,57 +191,54 @@ export class BomWeatherCard extends LitElement {
         this.language = this.hass.locale?.language as A_LANGUAGE;
         this.localize = getLocalizer(this.language);
       }
-    } else if (changedProperties.has('entity')) {
-      this.loadForecast();
     }
   }
 
-  override connectedCallback() {
+  public override connectedCallback() {
+    log.debug('✅ connected to DOM');
     super.connectedCallback();
-
-    this.loadForecast();
-  }
-
-  private async loadForecast() {
-    this.forecast = this.getForecast() ?? (await this.fetchForecast());
-    this.requestUpdate();
-  }
-
-  private getForecast(): any[] | null {
-    if (this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] === undefined) {
-      return null;
-    }
-
-    const stateObj =
-      this.hass.states[this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]!];
-    return stateObj?.attributes?.forecast || null;
-  }
-
-  private async fetchForecast(): Promise<any[] | null> {
-    try {
-      const result = await this.hass.callWS({
-        type: 'weather/get_forecast',
-        entity_id: this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID],
-        forecast_type: 'daily',
-      });
-      console.log(result);
-      return (result as any).forecast;
-    } catch (error) {
-      console.error('Error fetching forecast:', error);
-      return null;
+    if (this.hasUpdated && this._config && this.hass) {
+      this._subscribeForecastEvents();
     }
   }
 
-  renderSummary(): TemplateResult {
-    const showCurrentTemp: boolean =
-      this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] === true &&
-      this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID] !== undefined;
-    const showTime: boolean =
-      this._config[CONFIG_PROP.SHOW_TIME] === true &&
-      this._config[CONFIG_PROP.TIME_ENTITY_ID] !== undefined;
-    const showDate: boolean =
-      this._config[CONFIG_PROP.SHOW_DATE] === true &&
-      this._config[CONFIG_PROP.DATE_ENTITY_ID] !== undefined;
+  public override disconnectedCallback(): void {
+    log.debug('❌ disconnected from DOM');
+    super.disconnectedCallback();
+    this._unsubscribeForecastEvents();
+  }
+
+  private _renderSummary(): TemplateResult {
+    const showCurrentTemp = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_CURRENT_TEMP,
+      CONFIG_PROP.CURRENT_TEMP_ENTITY_ID
+    );
+    const showWeatherIcon = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_WEATHER_ICON,
+      CONFIG_PROP.WEATHER_ICON_ENTITY_ID
+    );
+    const showTime = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_TIME,
+      CONFIG_PROP.TIME_ENTITY_ID
+    );
+    const showDate = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_DATE,
+      CONFIG_PROP.DATE_ENTITY_ID
+    );
+    const showFeelsLikeTemperature = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
+      CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
+    );
 
     return html`<div class="summary">
       <!-- First Row -->
@@ -153,26 +248,33 @@ export class BomWeatherCard extends LitElement {
           ? html`<bwc-temperature-element
               class="item"
               .localize=${this.localize}
-              .temperature=${this.hass.states[
-                this._config[CONFIG_PROP.OBSERVATION_ENTITY_ID]!
-              ].attributes[OBSERVATION_ATTRIBUTE.CURRENT_TEMPERATURE]}
+              .temperature=${getCardEntityValueAsNumber(
+                this.hass,
+                this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
+              )}
+              .feelsLikeTemperature=${showFeelsLikeTemperature
+                ? getCardEntityValueAsNumber(
+                    this.hass,
+                    this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
+                  )
+                : undefined}
             ></bwc-temperature-element>`
           : nothing}
 
         <!-- Weather Icon  -->
-        ${showCurrentTemp
+        ${showWeatherIcon
           ? html`<bwc-weather-icon-element
               class=${classnames('item', {
                 center: showTime,
                 right: !showTime,
               })}
-              .hass=${this.hass}
               .useHAWeatherIcons=${this._config[
                 CONFIG_PROP.USE_HA_WEATHER_ICONS
               ] === true}
-              .weatherEntityId=${this._config[
-                CONFIG_PROP.OBSERVATION_ENTITY_ID
-              ]}
+              .weatherIcon=${getCardEntityValueAsString(
+                this.hass,
+                this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
+              )}
             ></bwc-weather-icon-element>`
           : nothing}
 
@@ -182,6 +284,8 @@ export class BomWeatherCard extends LitElement {
               class="item right"
               .hass=${this.hass}
               .showDate=${showDate}
+              .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
+              .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
             ></bwc-time-date-element>`
           : nothing}
       </div>
@@ -213,12 +317,12 @@ export class BomWeatherCard extends LitElement {
     </div> `;
   }
 
-  // Render card
-  override render() {
-    console.log(
-      this.hass.states[this._config.observation_entity_id!],
-      this.forecast
-    );
+  public override render() {
+    log.trace('🖼️ Rendering card with state:', {
+      hass: this.hass,
+      config: this._config,
+      forecast: this._dailyForecastEvent,
+    });
 
     return html`<ha-card
       class="${classnames({
@@ -234,7 +338,7 @@ export class BomWeatherCard extends LitElement {
         : nothing}
 
       <!-- Summary -->
-      ${this.renderSummary()}
+      ${this._renderSummary()}
 
       <!-- Debug Info -->
       <div class="bwc-debug item-container">
@@ -243,6 +347,11 @@ export class BomWeatherCard extends LitElement {
     </ha-card> `;
   }
 
+  /**
+   * Called by Home Assistant to get element responsible for rendering the card editor
+   *
+   * @returns {Promise<LitElement>} An instance of the BomWeatherCardEditor element
+   */
   public static async getConfigElement(): Promise<LitElement> {
     await import('./bom-weather-card-editor');
     return document.createElement('bom-weather-card-editor');

@@ -7,7 +7,7 @@ import {Localizer} from '../types/localizer.type';
  * @param localize The localizer function
  *
  * @throws {Error} If the HA Entity Picker element fails to pre-load
- * */
+ */
 export const preLoadEntityPicker = async (
   localize: Localizer
 ): Promise<void> => {

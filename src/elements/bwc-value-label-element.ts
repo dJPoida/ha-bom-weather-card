@@ -28,9 +28,12 @@ export class ValueLabelElement extends LitElement {
         .value {
           font-size: var(--bwc-value-label-value-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .value + .label {
+          margin-top: 0.5em;
         }
 
         .label {

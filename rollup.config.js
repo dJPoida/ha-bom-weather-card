@@ -10,6 +10,10 @@ import svg from 'rollup-plugin-svg';
 import incrementBuildNumber from './tools/increment-build-number.mjs';
 
 const production = !process.env.ROLLUP_WATCH;
+
+// Set the log level based on the environment
+const logLevel = production ? 'warn' : 'debug';
+
 const serveOptions = {
   contentBase: ['./dist'],
   host: '0.0.0.0',
@@ -34,6 +38,14 @@ export default {
   plugins: [
     incrementBuildNumber(),
     replace({preventAssignment: false, 'Reflect.decorate': 'undefined'}),
+    replace({
+      preventAssignment: true,
+      'process.env.NODE_ENV': JSON.stringify(
+        process.env.NODE_ENV || 'development'
+      ),
+      delimiters: ['', ''],
+      "log.setLevel('info');": `log.setLevel('${logLevel}');`,
+    }),
     svg(),
     resolve(),
     commonjs(),

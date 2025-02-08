@@ -22,6 +22,7 @@ To enable the Date and Time features your Home Assistant instance must have both
   - 4am -> 12pm (Morning): Min / Max (Last night's min, Today's Max)
   - 12pm -> 6pm (Afternoon): Max / Overnight Min (Today's Max, Tonight's Min)
   - 6pm -> 4am (Evening): Overnight Min / Tomorrow's Max (Tonight's Min, Tomorrow's Max)
+- Automatically infers entities and weather attributes from the configured weather device
 
 # Development
 
@@ -101,6 +102,18 @@ The [Home Assistant Community Store (HACS)](https://www.hacs.xyz/) can be added 
 7. Follow through the setup wizard.
 8. Restart Home Assistant (or the docker container via `npm run hass:restart`)
 
+## Log Verbosity
+
+This project utilizes the [loglevel](https://www.npmjs.com/package/loglevel) library to assist in filtering the logs. To increase the verbosity, either update the `const logLevel = ` line in [rollup.config.js](./rollup.config.js#L15), or run the following command at runtime in the browser to change it dynamically.
+
+```
+window.bomWeatherCardLog.setLevel('trace');
+window.bomWeatherCardLog.setLevel('debug');
+window.bomWeatherCardLog.setLevel('info');
+window.bomWeatherCardLog.setLevel('warn');
+window.bomWeatherCardLog.setLevel('error');
+```
+
 # NPM Scripts
 
 **`npm run build`** \
@@ -145,14 +158,41 @@ This dashboard is initially controlled by Home Assistant. To to take control of 
 - Click the pencil (edit) button in the top right
 - Select the three dots menu and select "Take Control"
 
+# Field and Data source mapping and inference
+
+For weather entities and attributes that are not explicitly defined by the user, there is a system under
+the hood which infers entities and attributes from other defined configurations.
+
+For example, defining the Weather Device, will infer the name of the summary weather entity from the weather device.
+This is purely a convenience feature to prevent the user from having to explicitly set each of the entities in the
+configuration. However, it's mainly designed around the entities exposed by default from [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology).
+
+All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants/inferred-entity-rules.const.ts).
+
+## Summary inference rules
+
+- Summary Weather Entity -> `summary_weather_entity_id` -> `weather.%device_name%`
+- Current Temp -> `current_temp_entity_id` -> `summary_weather_entity[attribute: temperature]`
+- Feels Like Temp -> `feels_like_temp_entity_id`
+- Weather Icon -> `weather_icon_entity_id` -> `weather.%device_name%`
+- Time -> `time_entity_id` -> `sensor.time`
+- Date -> `date_entity_id` -> `sensor.date`
+- Now/Later - Now Temperature -> `now_later_now_temp_entity_id` -> `sensor.%device_name%_now_temp_now`
+- Now/Later - Now Label -> `now_later_now_label_entity_id` -> `sensor.%device_name%_now_now_label`
+- Now/Later - Later Temperature -> `now_later_later_temp_entity_id` -> `sensor.%device_name%_now_temp_later`
+- Now/Later - Later Label -> `now_later_later_label_entity_id` -> `sensor.%device_name%_now_later_label`
+- Warning Count -> `warning_count_entity_id` -> `sensor.%device_name%_warnings`
+
 # Links and References:
 
 - [custom-card-helpers Documentation](https://custom-cards.github.io/custom-card-helpers/index.html)
 - [Home Assistant Frontend Component Source](https://github.com/home-assistant/frontend/tree/dev/src/components)
+- [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology)
 
 # Acknowledgements
 
 - Thanks to [Bas Milius](https://bas.dev) for the weather icons used in this project. check out his project here: [Meteocons v2.0.0](https://github.com/basmilius/weather-icons/releases/tag/v2.0.0).
+- Thanks to [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) for being the inspiration behind making this front end component
 
 # TODO
 

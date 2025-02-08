@@ -1,24 +1,31 @@
 import classNames from 'classnames';
-import {css, CSSResultGroup, html, LitElement} from 'lit';
+import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {elementStyles} from '../styles/element.style';
 import {Localizer} from '../types/localizer.type';
 
 @customElement('bwc-temperature-element')
 export class temperatureElement extends LitElement {
-  @property({attribute: false}) public temperature!: number;
+  @property({attribute: false}) public temperature!: number | undefined;
+  @property({attribute: false}) public feelsLikeTemperature!:
+    | number
+    | undefined;
   @property() public weatherEntityId: string | undefined;
 
   @property() public localize!: Localizer;
 
   override render() {
     return html`<div class=${classNames('temperature-element')}>
-      <span class="number">${this.temperature}&deg;</span>
-      <span class="description"
-        >${this.localize('card.feelsLike')}&nbsp;<strong
-          >${this.temperature}&deg;</strong
-        ></span
-      >
+      <span class="number">${this.temperature ?? '-'}&deg;</span>
+      ${this.feelsLikeTemperature !== undefined
+        ? html`
+            <span class="description"
+              >${this.localize('card.feelsLike')}&nbsp;<strong
+                >${this.feelsLikeTemperature}&deg;</strong
+              ></span
+            >
+          `
+        : nothing}
     </div>`;
   }
 
@@ -35,9 +42,12 @@ export class temperatureElement extends LitElement {
         .number {
           font-size: var(--bwc-temperature-number-font-size);
           line-height: 1em;
-          margin-bottom: 0.25em;
           font-weight: 500;
           width: fit-content;
+        }
+
+        .number + .description {
+          margin-top: 0.5em;
         }
 
         .description {
