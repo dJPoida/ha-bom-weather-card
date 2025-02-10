@@ -1,6 +1,6 @@
 import {HomeAssistant} from 'custom-card-helpers';
 import log from 'loglevel';
-import {weatherEntityStrings} from '../constants/weather-entity-strings.constant';
+import {weatherEntityStrings} from '../constants/weather-entity-strings.const';
 import {HassDeviceRegistryEntry} from '../types/hass-device-registry-entry.type';
 import {HassEntityRegistryEntry} from '../types/hass-entity-registry.type';
 import {fetchDevices} from './fetch-devices.helper';

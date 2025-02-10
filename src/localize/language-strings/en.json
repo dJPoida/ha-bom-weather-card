@@ -5,7 +5,8 @@
     "description": "Display weather information in the style of the BOM (Bureau of Meteorology) Australia app."
   },
   "card": {
-    "feelsLike": "Feels like"
+    "feelsLike": "Feels like",
+    "rain": "Rain"
   },
   "editor": {
     "currentTemperatureEntity": "Current Temperature Entity",
@@ -24,13 +25,14 @@
     "showCurrentTemperature": "Show Current Temperature",
     "showDailyForecast": "Show Daily Forecast",
     "showDate": "Show Date",
+    "hideWarningCountIfZero": "Hide Warning Count If Zero",
     "showFeelsLikeTemperature": "Show Feels Like Temperature",
     "showForecastSummary": "Show Forecast Summary",
     "showHourlyForecast": "Show Hourly Forecast",
     "showNowLaterTemps": "Show Now/Later Temperatures",
     "showRainSummary": "Show Rain Summary",
     "showTime": "Show Time",
-    "showWarningsCount": "Show Warnings Count",
+    "showWarningCount": "Show Warning Count",
     "showWeatherIcon": "Show Weather Icon",
     "summary": "Summary",
     "summaryWeatherEntity": "Summary Weather Entity",

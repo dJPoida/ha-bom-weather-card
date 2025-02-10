@@ -1,6 +1,7 @@
 node_modules
-dist/**/*
+dist/*
 !dist/*.js
+!dist/img
 .devcontainer/*
 !.devcontainer/configuration.yaml
 !.devcontainer/lovelace.yaml

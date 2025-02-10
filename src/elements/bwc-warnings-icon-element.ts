@@ -48,12 +48,17 @@ export class WarningsIconElement extends LitElement {
             svg {
               height: var(--bwc-warning-icon-size);
               width: var(--bwc-warning-icon-size);
+
+              path {
+                fill: var(--bwc-waring-text-color);
+              }
             }
           }
 
           .value-wrapper {
             padding: 0.5em;
             font-size: var(--bwc-warning-font-size);
+            color: var(--bwc-waring-text-color);
             display: flex;
             align-items: center;
           }

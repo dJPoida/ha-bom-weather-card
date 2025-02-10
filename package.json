@@ -1,6 +1,6 @@
 {
   "name": "@djpoida/ha-bom-weather-card",
-  "version": "0.0.1154",
+  "version": "0.0.1324",
   "author": "Peter Eldred",
   "license": "MIT",
   "description": "A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app",
@@ -39,6 +39,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "rollup": "^4.9.1",
+    "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-filesize": "^10.0.0",
     "rollup-plugin-serve": "^1.1.1",
     "rollup-plugin-svg": "^2.0.0",

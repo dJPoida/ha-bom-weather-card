@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
-import {WEATHER_ICON} from '../img/weather-icons/weather-icons';
+import {WEATHER_ICON} from '../constants/weather-icons.const';
 import {elementStyles} from '../styles/element.style';
 
 @customElement('bwc-weather-icon-element')

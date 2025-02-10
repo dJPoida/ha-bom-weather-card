@@ -15,6 +15,7 @@ import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
 import {DOMAIN} from '../constants/domains.const';
 import {A_LANGUAGE, DEFAULT_LANGUAGE} from '../constants/languages.const';
 import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
+import {fixOrphanedConfigProps} from '../helpers/fix-orphaned-config-props.helper';
 import {getCardEntityDetails} from '../helpers/get-card-entity-details.helper';
 import {isElementHaSwitch} from '../helpers/is-element-ha-switch.helper';
 import {preLoadEntityPicker} from '../helpers/preload-element-ha-entity-picker.helper';
@@ -80,6 +81,11 @@ export class BomWeatherCardEditor
       ha-expansion-panel {
         margin-bottom: var(--bwc-global-padding);
       }
+
+      .level-one {
+        margin-left: calc(var(--bwc-global-padding) * 2);
+        width: calc(100% - var(--bwc-global-padding) * 2);
+      }
     `;
   }
 
@@ -107,16 +113,22 @@ export class BomWeatherCardEditor
   }
 
   public setConfig(newConfig: CardConfig): void {
+    let cleanedConfig = {...newConfig};
+
     // On first load, merge the default config with the user provided config
     if (!this._initialized) {
-      this._config = {
+      cleanedConfig = {
         ...this._config,
-        ...newConfig,
+        ...cleanedConfig,
       };
       this._initialized = true;
-    } else {
-      this._config = {...newConfig};
     }
+
+    // Remove any orphaned config properties
+    cleanedConfig = fixOrphanedConfigProps(cleanedConfig);
+
+    // Apply the new config
+    this._config = cleanedConfig;
   }
 
   private async _calculateCardEntities(): Promise<void> {
@@ -140,7 +152,7 @@ export class BomWeatherCardEditor
       ? target.checked
       : target.value;
 
-    log.debug('🔧 Config Change:', newValue);
+    log.debug('🔧 Field Value Changed:', {targetId, newValue});
 
     if (newValue === this._config[targetId]) return;
 
@@ -162,12 +174,14 @@ export class BomWeatherCardEditor
   private renderWeatherDevicePicker(
     name: A_CONFIG_PROP,
     label: string,
-    required = false
+    required = false,
+    className: string | undefined = undefined
   ): TemplateResult {
     return html`
       <bwc-weather-device-picker-element
         id="${name}"
         .hass=${this.hass}
+        class=${classNames('item', className)}
         .label="${label} (${required
           ? this.localize('editor.required')
           : this.localize('editor.optional')})"
@@ -184,13 +198,14 @@ export class BomWeatherCardEditor
     label: string,
     includeDomains: string[] = [],
     required = false,
-    helper: string | undefined = undefined
+    helper: string | undefined = undefined,
+    className: string | undefined = undefined
   ): TemplateResult {
     return html`
       <ha-entity-picker
         id="${name}"
         .hass=${this.hass}
-        class=${classNames('item')}
+        class=${classNames('item', className)}
         .label="${label} (${required
           ? this.localize('editor.required')
           : this.localize('editor.optional')})"
@@ -208,13 +223,14 @@ export class BomWeatherCardEditor
   private renderTextField(
     name: A_CONFIG_PROP,
     label: string,
-    required = false
+    required = false,
+    className: string | undefined = undefined
   ): TemplateResult {
     return html`
       <ha-textfield
         id=${name}
         type="string"
-        class=${classNames('item')}
+        class=${classNames('item', className)}
         .value=${this._config[name] ?? ''}
         .label="${label} (${required
           ? this.localize('editor.required')
@@ -230,10 +246,11 @@ export class BomWeatherCardEditor
 
   private renderBooleanField(
     name: A_CONFIG_PROP,
-    label: string
+    label: string,
+    className: string | undefined = undefined
   ): TemplateResult {
     return html`
-      <ha-formfield .label=${label} class=${classNames('item')}>
+      <ha-formfield .label=${label} class=${classNames('item', className)}>
         <ha-switch
           id=${name}
           .checked=${this._config[name] ?? false}
@@ -248,196 +265,239 @@ export class BomWeatherCardEditor
       .outlined=${true}
       header="${this.localize('editor.summary')}"
     >
-      <!-- Show Current Temperature -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_CURRENT_TEMP,
-        this.localize('editor.showCurrentTemperature')
-      )}
+      <div class="item-group">
+        <!-- Show Current Temperature -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_CURRENT_TEMP,
+          this.localize('editor.showCurrentTemperature')
+        )}
+        ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
+          ? html`<div class="item-group level-one">
+              <!-- Current Temp Entity -->
+              ${this.renderEntityPicker(
+                CONFIG_PROP.CURRENT_TEMP_ENTITY_ID,
+                this.localize('editor.currentTemperatureEntity'),
+                [],
+                false,
+                getCardEntityDetails(
+                  this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
+                ).displayName
+              )}
 
-      <!-- Current Temp Entity -->
-      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.CURRENT_TEMP_ENTITY_ID,
-            this.localize('editor.currentTemperatureEntity'),
-            [],
-            false,
-            getCardEntityDetails(
-              this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
-            ).displayName
-          )
-        : nothing}
+              <!-- Show Feels Like Temperature -->
+              ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
+                ? this.renderBooleanField(
+                    CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
+                    this.localize('editor.showFeelsLikeTemperature')
+                  )
+                : nothing}
 
-      <!-- Show Feels Like Temperature -->
-      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
-        ? this.renderBooleanField(
-            CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
-            this.localize('editor.showFeelsLikeTemperature')
-          )
-        : nothing}
+              <!-- Feels Like Temp Entity -->
+              ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] &&
+              this._config[CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID,
+                    this.localize('editor.feelsLikeTemperatureEntity'),
+                    [],
+                    false,
+                    this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
+                      ?.is_inferred
+                      ? this._cardEntities[
+                          CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
+                        ].entity_id
+                      : undefined
+                  )
+                : nothing}
+            </div> `
+          : nothing}
 
-      <!-- Feels Like Temp Entity -->
-      ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP] &&
-      this._config[CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID,
-            this.localize('editor.feelsLikeTemperatureEntity'),
-            [],
-            false,
-            this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
-              ?.is_inferred
-              ? this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]
-                  .entity_id
-              : undefined
-          )
-        : nothing}
+        <!-- Weather Icon -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_WEATHER_ICON,
+          this.localize('editor.showWeatherIcon')
+        )}
 
-      <!-- Weather Icon -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_WEATHER_ICON,
-        this.localize('editor.showWeatherIcon')
-      )}
+        <!-- Weather Icon Entity -->
+        ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
+          ? html`<div class="item-group level-one">
+              ${this.renderEntityPicker(
+                CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
+                this.localize('editor.weatherIconEntity'),
+                [],
+                false,
+                getCardEntityDetails(
+                  this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
+                ).displayName
+              )}
 
-      <!-- Weather Icon Entity -->
-      ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
-            this.localize('editor.weatherIconEntity'),
-            [],
-            false,
-            getCardEntityDetails(
-              this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
-            ).displayName
-          )
-        : nothing}
+              <!-- Use Default Weather Icons -->
+              ${this.renderBooleanField(
+                CONFIG_PROP.USE_HA_WEATHER_ICONS,
+                this.localize('editor.useDefaultHaWeatherIcons')
+              )}
+            </div>`
+          : nothing}
 
-      <!-- Use Default Weather Icons -->
-      ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
-        ? this.renderBooleanField(
-            CONFIG_PROP.USE_HA_WEATHER_ICONS,
-            this.localize('editor.useDefaultHaWeatherIcons')
-          )
-        : nothing}
+        <!-- Show Time -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_TIME,
+          this.localize('editor.showTime')
+        )}
 
-      <!-- Show Time -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_TIME,
-        this.localize('editor.showTime')
-      )}
+        <!-- Time Entity -->
+        ${this._config[CONFIG_PROP.SHOW_TIME]
+          ? html`<div class="item-group level-one">
+              ${this.renderEntityPicker(
+                CONFIG_PROP.TIME_ENTITY_ID,
+                this.localize('editor.timeEntity'),
+                [],
+                false,
+                getCardEntityDetails(
+                  this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]
+                ).displayName
+              )}
 
-      <!-- Time Entity -->
-      ${this._config[CONFIG_PROP.SHOW_TIME]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.TIME_ENTITY_ID,
-            this.localize('editor.timeEntity'),
-            [],
-            false,
-            this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]?.is_inferred
-              ? this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID].entity_id
-              : undefined
-          )
-        : nothing}
+              <!-- Show Date -->
+              ${this.renderBooleanField(
+                CONFIG_PROP.SHOW_DATE,
+                this.localize('editor.showDate')
+              )}
 
-      <!-- Show Date -->
-      ${this._config[CONFIG_PROP.SHOW_TIME]
-        ? this.renderBooleanField(
-            CONFIG_PROP.SHOW_DATE,
-            this.localize('editor.showDate')
-          )
-        : nothing}
+              <!-- Date Entity -->
+              ${this._config[CONFIG_PROP.SHOW_DATE]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.DATE_ENTITY_ID,
+                    this.localize('editor.dateEntity'),
+                    [],
+                    false,
+                    getCardEntityDetails(
+                      this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]
+                    ).displayName
+                  )
+                : nothing}
+            </div>`
+          : nothing}
 
-      <!-- Date Entity -->
-      ${this._config[CONFIG_PROP.SHOW_TIME] &&
-      this._config[CONFIG_PROP.SHOW_DATE]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.DATE_ENTITY_ID,
-            this.localize('editor.dateEntity'),
-            [],
-            false,
-            this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]?.is_inferred
-              ? this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID].entity_id
-              : undefined
-          )
-        : nothing}
+        <!-- Show Now / Later Temps -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
+          this.localize('editor.showNowLaterTemps')
+        )}
+        ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+          ? html`<div class="item-group level-one">
+              <!-- Now Temp Entity -->
+              ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID,
+                    this.localize('editor.nowTempEntity'),
+                    [],
+                    false,
+                    getCardEntityDetails(
+                      this._cardEntities[
+                        CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID
+                      ]
+                    ).displayName
+                  )
+                : nothing}
 
-      <!-- Show Now / Later Temps -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
-        this.localize('editor.showNowLaterTemps')
-      )}
+              <!-- Now Label Entity -->
+              ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID,
+                    this.localize('editor.nowLabelEntity'),
+                    [],
+                    false,
+                    getCardEntityDetails(
+                      this._cardEntities[
+                        CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID
+                      ]
+                    ).displayName
+                  )
+                : nothing}
 
-      <!-- Now Temp Entity -->
-      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID,
-            this.localize('editor.nowTempEntity')
-          )
-        : nothing}
+              <!-- Later Temp Entity -->
+              ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID,
+                    this.localize('editor.laterTempEntity'),
+                    [],
+                    false,
+                    getCardEntityDetails(
+                      this._cardEntities[
+                        CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
+                      ]
+                    ).displayName
+                  )
+                : nothing}
 
-      <!-- Now Label Entity -->
-      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID,
-            this.localize('editor.nowLabelEntity')
-          )
-        : nothing}
+              <!-- Later Label Entity -->
+              ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
+                ? this.renderEntityPicker(
+                    CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID,
+                    this.localize('editor.laterLabelEntity'),
+                    [],
+                    false,
+                    getCardEntityDetails(
+                      this._cardEntities[
+                        CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID
+                      ]
+                    ).displayName
+                  )
+                : nothing}
+            </div>`
+          : nothing}
 
-      <!-- Later Temp Entity -->
-      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID,
-            this.localize('editor.laterTempEntity')
-          )
-        : nothing}
+        <!-- Show Warnings Count -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_WARNING_COUNT,
+          this.localize('editor.showWarningCount')
+        )}
+        ${this._config[CONFIG_PROP.SHOW_WARNING_COUNT]
+          ? html`<div class="item-group level-one">
+              <!-- Warnings Count Entity -->
+              ${this.renderEntityPicker(
+                CONFIG_PROP.WARNING_COUNT_ENTITY_ID,
+                this.localize('editor.warningsCountEntity')
+              )}
+              ${this.renderBooleanField(
+                CONFIG_PROP.HIDE_WARNING_COUNT_IF_ZERO,
+                this.localize('editor.hideWarningCountIfZero')
+              )}
+            </div>`
+          : nothing}
 
-      <!-- Later Label Entity -->
-      ${this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID,
-            this.localize('editor.laterLabelEntity')
-          )
-        : nothing}
+        <!-- Show Rain Summary -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_RAIN_SUMMARY,
+          this.localize('editor.showRainSummary')
+        )}
 
-      <!-- Show Warnings Count -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_WARNINGS_COUNT,
-        this.localize('editor.showWarningsCount')
-      )}
+        <!-- Rain Summary Entity -->
+        ${this._config[CONFIG_PROP.SHOW_RAIN_SUMMARY]
+          ? html`<div class="item-group level-one">
+              ${this.renderEntityPicker(
+                CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID,
+                this.localize('editor.rainSummaryEntity')
+              )}
+            </div>`
+          : nothing}
 
-      <!-- Warnings Count Entity -->
-      ${this._config[CONFIG_PROP.SHOW_WARNINGS_COUNT]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID,
-            this.localize('editor.warningsCountEntity')
-          )
-        : nothing}
+        <!-- Show Forecast Summary -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_FORECAST_SUMMARY,
+          this.localize('editor.showForecastSummary')
+        )}
 
-      <!-- Show Rain Summary -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_RAIN_SUMMARY,
-        this.localize('editor.showRainSummary')
-      )}
-
-      <!-- Rain Summary Entity -->
-      ${this._config[CONFIG_PROP.SHOW_RAIN_SUMMARY]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID,
-            this.localize('editor.rainSummaryEntity')
-          )
-        : nothing}
-
-      <!-- Show Forecast Summary -->
-      ${this.renderBooleanField(
-        CONFIG_PROP.SHOW_FORECAST_SUMMARY,
-        this.localize('editor.showForecastSummary')
-      )}
-
-      <!-- Forecast Summary Entity -->
-      ${this._config[CONFIG_PROP.SHOW_FORECAST_SUMMARY]
-        ? this.renderEntityPicker(
-            CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID,
-            this.localize('editor.forecastSummaryEntity')
-          )
-        : nothing}
+        <!-- Forecast Summary Entity -->
+        ${this._config[CONFIG_PROP.SHOW_FORECAST_SUMMARY]
+          ? html`<div class="item-group level-one">
+              ${this.renderEntityPicker(
+                CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID,
+                this.localize('editor.forecastSummaryEntity')
+              )}
+            </div>`
+          : nothing}
+      </div>
     </ha-expansion-panel>`;
   }
 

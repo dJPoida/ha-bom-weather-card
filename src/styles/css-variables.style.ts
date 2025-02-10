@@ -3,7 +3,7 @@ import {css} from 'lit';
 export const cssVariables = css`
   :host {
     /* Bom Weather Card Custom CSS Variables */
-    --bwc-large-font-size: 4rem;
+    --bwc-large-font-size: 3.5rem;
     --bwc-medium-font-size: 2rem;
     --bwc-regular-font-size: 1.2rem;
 
@@ -18,7 +18,7 @@ export const cssVariables = css`
     --bwc-temperature-description-font-size: var(--bwc-regular-font-size);
     --bwc-value-label-value-font-size: var(--bwc-medium-font-size);
     --bwc-value-label-label-font-size: var(--bwc-regular-font-size);
-    --bwc-weather-icon-height: 7rem;
+    --bwc-weather-icon-height: 6rem;
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
     --bwc-item-container-height: 5rem;
@@ -26,16 +26,19 @@ export const cssVariables = css`
     --bwc-warning-has-warnings-background-color: #fdb404;
     --bwc-warning-icon-size: var(--bwc-medium-font-size);
     --bwc-warning-font-size: var(--bwc-regular-font-size);
+    --bwc-waring-text-color: var(--text-light-primary-color);
 
     /* Conditional Colors based on Day/Night and Dark/Light Theme */
     /* Light Theme / Day Mode */
     --bwc-text-color: var(--text-light-primary-color);
+    --bwc-text-color-inverted: var(--text-primary-color);
     --bwc-background-color-start: var(--bwc-background-color-day-start);
     --bwc-background-color-end: var(--bwc-background-color-day-end);
 
     /* Light Theme / Night Mode */
     ha-card.night {
       --bwc-text-color: var(--text-primary-color);
+      --bwc-text-color-inverted: var(--text-light-primary-color);
       --bwc-background-color-start: var(--bwc-background-color-night-start);
       --bwc-background-color-end: var(--bwc-background-color-night-end);
     }

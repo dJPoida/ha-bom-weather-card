@@ -36,8 +36,9 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]: string | undefined;
   [CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]: string | undefined;
 
-  [CONFIG_PROP.SHOW_WARNINGS_COUNT]: boolean | undefined;
-  [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.SHOW_WARNING_COUNT]: boolean | undefined;
+  [CONFIG_PROP.WARNING_COUNT_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.HIDE_WARNING_COUNT_IF_ZERO]: boolean | undefined;
 
   [CONFIG_PROP.SHOW_RAIN_SUMMARY]: boolean | undefined;
   [CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]: string | undefined;

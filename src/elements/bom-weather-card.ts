@@ -8,6 +8,7 @@ import {
   nothing,
   PropertyValues,
   TemplateResult,
+  unsafeCSS,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import log from 'loglevel';
@@ -49,6 +50,11 @@ export class BomWeatherCard extends LitElement {
   private _initialized = false;
 
   static override get styles(): CSSResultGroup {
+    const backgroundsBaseUrl = new URL(
+      'img/backgrounds/',
+      import.meta.url
+    ).toString();
+
     return css`
       ${cssVariables}
       ${globalStyles}
@@ -57,13 +63,18 @@ export class BomWeatherCard extends LitElement {
       ha-card {
         color: var(--bwc-text-color);
 
+        min-height: var(--bwc-min-height);
         /* TODO: make this configurable */
         background: linear-gradient(
-          to bottom,
-          var(--bwc-background-color-start),
-          var(--bwc-background-color-end)
-        );
-        min-height: var(--bwc-min-height);
+            to bottom,
+            var(--bwc-background-color-start),
+            var(--bwc-background-color-end)
+          ),
+          url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-blend-mode: overlay;
 
         /* TODO: make this configurable */
         border: none;
@@ -173,12 +184,12 @@ export class BomWeatherCard extends LitElement {
       log.debug('_dailyForecastEvent changed', this._dailyForecastEvent);
     }
 
-    const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
+    // TODO: ensure the efficiency of this check is maximized
+    // const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
     // const oldConfig = changedProps.get('_config') as CardConfig | undefined;
-
     if (
-      changedProps.has('hass') &&
-      !oldHass // ||
+      changedProps.has('hass')
+      // !oldHass // ||
       // (changedProps.has('_config') && !oldConfig) ||
       // (changedProps.has('hass') && oldHass!.themes !== this.hass.themes) ||
       // (changedProps.has('_config') && oldConfig!.theme !== this._config.theme)
@@ -215,30 +226,35 @@ export class BomWeatherCard extends LitElement {
       CONFIG_PROP.SHOW_CURRENT_TEMP,
       CONFIG_PROP.CURRENT_TEMP_ENTITY_ID
     );
+
     const showWeatherIcon = shouldRenderEntity(
       this._config,
       this._cardEntities,
       CONFIG_PROP.SHOW_WEATHER_ICON,
       CONFIG_PROP.WEATHER_ICON_ENTITY_ID
     );
+
     const showTime = shouldRenderEntity(
       this._config,
       this._cardEntities,
       CONFIG_PROP.SHOW_TIME,
       CONFIG_PROP.TIME_ENTITY_ID
     );
+
     const showDate = shouldRenderEntity(
       this._config,
       this._cardEntities,
       CONFIG_PROP.SHOW_DATE,
       CONFIG_PROP.DATE_ENTITY_ID
     );
+
     const showFeelsLikeTemperature = shouldRenderEntity(
       this._config,
       this._cardEntities,
       CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
       CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
     );
+
     const showNowLater =
       this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
     const showNowLaterNow = shouldRenderEntity(
@@ -254,11 +270,36 @@ export class BomWeatherCard extends LitElement {
       CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
     );
 
-    const showWarningsCount = shouldRenderEntity(
+    const showWarningCount =
+      shouldRenderEntity(
+        this._config,
+        this._cardEntities,
+        CONFIG_PROP.SHOW_WARNING_COUNT,
+        CONFIG_PROP.WARNING_COUNT_ENTITY_ID
+      ) &&
+      (!this._config[CONFIG_PROP.HIDE_WARNING_COUNT_IF_ZERO] ||
+        (getCardEntityValueAsNumber(
+          this.hass,
+          this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]
+        ) ?? 0) > 0);
+
+    const showRainSummary = shouldRenderEntity(
       this._config,
       this._cardEntities,
-      CONFIG_PROP.SHOW_WARNINGS_COUNT,
-      CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID
+      CONFIG_PROP.SHOW_RAIN_SUMMARY,
+      CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID
+    );
+
+    const rainSummary = getCardEntityValueAsString(
+      this.hass,
+      this._cardEntities[CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]
+    );
+
+    const showForecastSummary = shouldRenderEntity(
+      this._config,
+      this._cardEntities,
+      CONFIG_PROP.SHOW_FORECAST_SUMMARY,
+      CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID
     );
 
     return html`<div class="summary">
@@ -321,11 +362,12 @@ export class BomWeatherCard extends LitElement {
         : nothing}
 
       <!-- Second Row (now/later temps and warnings) -->
-      ${showNowLater || showWarningsCount
+      ${showNowLater || showWarningCount
         ? html`<div class="item-container justify-left">
             ${showNowLaterNow
               ? html`<bwc-temperature-element
                   class="item left no-grow"
+                  .decimalPlaces=${0}
                   .value=${getCardEntityValueAsNumber(
                     this.hass,
                     this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]
@@ -341,6 +383,7 @@ export class BomWeatherCard extends LitElement {
             ${showNowLaterLater
               ? html`<bwc-temperature-element
                   class="item left no-grow"
+                  .decimalPlaces=${0}
                   .value=${getCardEntityValueAsNumber(
                     this.hass,
                     this._cardEntities[
@@ -355,12 +398,12 @@ export class BomWeatherCard extends LitElement {
                   )}
                 ></bwc-temperature-element> `
               : nothing}
-            ${showWarningsCount
+            ${showWarningCount
               ? html`<bwc-warnings-icon-element
                   class="item right"
                   .value=${getCardEntityValueAsNumber(
                     this.hass,
-                    this._cardEntities[CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]
+                    this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]
                   )}
                 ></bwc-warnings-icon-element> `
               : nothing}
@@ -369,16 +412,22 @@ export class BomWeatherCard extends LitElement {
 
       <!-- Third and Fourth Row -->
       <div class="item-container column">
-        <bwc-value-label-element
-          class="item"
-          value="0-1mm"
-          label="Rain"
-        ></bwc-value-label-element>
-
-        <bwc-value-label-element
-          class="item"
-          value="Becoming Sunny"
-        ></bwc-value-label-element>
+        ${showRainSummary
+          ? html`<bwc-value-label-element
+              class="item"
+              .value=${`${rainSummary ? `${rainSummary}mm` : 'No Rain'}`}
+              .label=${rainSummary ? this.localize('card.rain') : undefined}
+            ></bwc-value-label-element> `
+          : nothing}
+        ${showForecastSummary
+          ? html`<bwc-value-label-element
+              class="item"
+              .value=${getCardEntityValueAsString(
+                this.hass,
+                this._cardEntities[CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID]
+              )}
+            ></bwc-value-label-element>`
+          : nothing}
       </div>
     </div> `;
   }

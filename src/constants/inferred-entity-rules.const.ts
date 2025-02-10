@@ -98,10 +98,26 @@ export const INFERRED_ENTITY_RULES: Record<A_CARD_ENTITY, InferredEntityRule> =
     },
 
     // Infer the warnings count entity from the device name "sensor.%device_name%_warnings"
-    [CONFIG_PROP.WARNINGS_COUNT_ENTITY_ID]: {
+    [CONFIG_PROP.WARNING_COUNT_ENTITY_ID]: {
       idPattern: {
         parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
         pattern: 'sensor.%device_name%_warnings',
+      },
+    },
+
+    // Infer the rain summary entity from the device name "sensor.%device_name%_rain_amount_range_0"
+    [CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]: {
+      idPattern: {
+        parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+        pattern: 'sensor.%device_name%_rain_amount_range_0',
+      },
+    },
+
+    // Infer the forecast summary entity from the device name "sensor.%device_name%_short_text_0"
+    [CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID]: {
+      idPattern: {
+        parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
+        pattern: 'sensor.%device_name%_short_text_0',
       },
     },
   };

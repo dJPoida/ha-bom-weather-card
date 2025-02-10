@@ -9,6 +9,7 @@ export class temperatureElement extends LitElement {
   @property({type: Boolean}) public isLarge: boolean = false;
   @property({type: Number}) public value!: number | undefined;
   @property({type: Number}) public feelsLikeTemperature!: number | undefined;
+  @property({type: Number}) public decimalPlaces: number = 1;
   @property() public label: string | undefined;
 
   @property() public localize!: Localizer;
@@ -17,12 +18,18 @@ export class temperatureElement extends LitElement {
     return html`<div
       class=${classNames('temperature-element', {large: this.isLarge})}
     >
-      <span class="number">${this.value ?? '-'}&deg;</span>
+      <span class="number"
+        >${this.value !== undefined
+          ? this.value.toFixed(this.decimalPlaces)
+          : '-'}&deg;</span
+      >
       ${this.feelsLikeTemperature !== undefined
         ? html`
             <span class="feels-like"
               >${this.localize('card.feelsLike')}&nbsp;<strong
-                >${this.feelsLikeTemperature}&deg;</strong
+                >${this.feelsLikeTemperature.toFixed(
+                  this.decimalPlaces
+                )}&deg;</strong
               ></span
             >
           `

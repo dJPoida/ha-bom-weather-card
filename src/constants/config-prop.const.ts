@@ -26,8 +26,9 @@ export const CONFIG_PROP = {
   NOW_LATER_LATER_TEMP_ENTITY_ID: 'now_later_later_temp_entity_id',
   NOW_LATER_LATER_LABEL_ENTITY_ID: 'now_later_later_label_entity_id',
 
-  SHOW_WARNINGS_COUNT: 'show_warnings_count',
-  WARNINGS_COUNT_ENTITY_ID: 'warning_count_entity_id',
+  SHOW_WARNING_COUNT: 'show_warning_count',
+  WARNING_COUNT_ENTITY_ID: 'warning_count_entity_id',
+  HIDE_WARNING_COUNT_IF_ZERO: 'hide_warning_count_if_zero',
 
   SHOW_RAIN_SUMMARY: 'show_rain_summary',
   RAIN_SUMMARY_ENTITY_ID: 'rain_summary_entity_id',
