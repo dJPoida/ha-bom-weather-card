@@ -6,6 +6,7 @@
   },
   "card": {
     "feelsLike": "Feels like",
+    "noRain": "No Rain",
     "rain": "Rain"
   },
   "editor": {
@@ -14,6 +15,7 @@
     "dateEntity": "Date Entity",
     "feelsLikeTemperatureEntity": "Feels Like Temperature Entity",
     "forecastSummaryEntity": "Forecast Summary Entity",
+    "hideWarningCountIfZero": "Hide Warning Count If Zero",
     "hourlyForecast": "Hourly Forecast",
     "laterLabelEntity": "Later Label Entity",
     "laterTempEntity": "Later Temp Entity",
@@ -25,7 +27,6 @@
     "showCurrentTemperature": "Show Current Temperature",
     "showDailyForecast": "Show Daily Forecast",
     "showDate": "Show Date",
-    "hideWarningCountIfZero": "Hide Warning Count If Zero",
     "showFeelsLikeTemperature": "Show Feels Like Temperature",
     "showForecastSummary": "Show Forecast Summary",
     "showHourlyForecast": "Show Hourly Forecast",
@@ -40,8 +41,8 @@
     "title": "Title",
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons",
     "warningsCountEntity": "Warnings Count Entity",
-    "weatherIconEntity": "Weather Icon Entity",
-    "weatherDevice": "Weather Device"
+    "weatherDevice": "Weather Device",
+    "weatherIconEntity": "Weather Icon Entity"
   },
   "error": {
     "invalidConfigProperty": "Invalid config property: {property}",

@@ -415,8 +415,10 @@ export class BomWeatherCard extends LitElement {
         ${showRainSummary
           ? html`<bwc-value-label-element
               class="item"
-              .value=${`${rainSummary ? `${rainSummary}mm` : 'No Rain'}`}
-              .label=${rainSummary ? this.localize('card.rain') : undefined}
+              .value=${`${rainSummary === '0' ? this.localize('card.noRain') : `${rainSummary}mm`}`}
+              .label=${rainSummary === '0'
+                ? undefined
+                : this.localize('card.rain')}
             ></bwc-value-label-element> `
           : nothing}
         ${showForecastSummary
