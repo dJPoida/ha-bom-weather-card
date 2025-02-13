@@ -51,9 +51,7 @@ export default {
     // Set the Log Level
     replace({
       preventAssignment: true,
-      'process.env.NODE_ENV': JSON.stringify(
-        process.env.NODE_ENV || 'development'
-      ),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
       delimiters: ['', ''],
       "log.setLevel('info');": `log.setLevel('${logLevel}');`,
     }),

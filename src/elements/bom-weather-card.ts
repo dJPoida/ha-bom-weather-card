@@ -1,21 +1,14 @@
 import classnames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-  TemplateResult,
-  unsafeCSS,
-} from 'lit';
+import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues, TemplateResult, unsafeCSS} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import log from 'loglevel';
 import {version} from '../../package.json';
 import {CONFIG_PROP} from '../constants/config-prop.const';
 import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
 import {A_LANGUAGE, DEFAULT_LANGUAGE} from '../constants/languages.const';
+import {WEATHER_CONDITION_CLASSES} from '../constants/weather-condition-classes.const';
+import {A_WEATHER_CONDITION} from '../constants/weather-conditions.const';
 import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
 import {getCardEntityValueAsNumber} from '../helpers/get-card-entity-value-as-number';
 import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
@@ -39,6 +32,7 @@ export class BomWeatherCard extends LitElement {
 
   @state() _dayMode: boolean = true;
   @state() _darkMode: boolean = false;
+  @state() _weatherClass: string = '';
 
   @state() _weatherSummaryData: WeatherSummaryData | undefined;
 
@@ -50,10 +44,7 @@ export class BomWeatherCard extends LitElement {
   private _initialized = false;
 
   static override get styles(): CSSResultGroup {
-    const backgroundsBaseUrl = new URL(
-      'img/backgrounds/',
-      import.meta.url
-    ).toString();
+    const backgroundsBaseUrl = new URL('img/backgrounds', import.meta.url).toString();
 
     return css`
       ${cssVariables}
@@ -63,14 +54,12 @@ export class BomWeatherCard extends LitElement {
       ha-card {
         color: var(--bwc-text-color);
 
+        --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
+
         min-height: var(--bwc-min-height);
         /* TODO: make this configurable */
-        background: linear-gradient(
-            to bottom,
-            var(--bwc-background-color-start),
-            var(--bwc-background-color-end)
-          ),
-          url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
+        background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
+          var(--background-url);
         background-position: center;
         background-repeat: no-repeat;
         background-size: cover;
@@ -78,6 +67,32 @@ export class BomWeatherCard extends LitElement {
 
         /* TODO: make this configurable */
         border: none;
+
+        /* Light Theme / Night Mode */
+        &.night {
+          --bwc-text-color: var(--text-primary-color);
+          --bwc-text-color-inverted: var(--text-light-primary-color);
+          --bwc-background-color-start: var(--bwc-background-color-night-start);
+          --bwc-background-color-end: var(--bwc-background-color-night-end);
+        }
+
+        /* Dark Theme / Day Mode */
+        &.dark-mode {
+          color: var(--text-light-primary-color);
+
+          /* Dark Theme / Night Mode */
+          &.night {
+            color: var(--text-primary-color);
+          }
+        }
+
+        /* Stormy (same in dark mode) */
+        &.stormy,
+        &.dark-mode.stormy {
+          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/stormy.png`)});
+          --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
+          --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
+        }
       }
 
       h1.card-header {
@@ -108,6 +123,16 @@ export class BomWeatherCard extends LitElement {
     log.debug('Card Entities Recalculated:', this._cardEntities);
   }
 
+  private async _calculateWeatherClass(): Promise<void> {
+    const currentCondition = getCardEntityValueAsString(
+      this.hass,
+      this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]
+    ) as A_WEATHER_CONDITION;
+    this._weatherClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
+
+    log.debug('Weather class recalculated:', this._weatherClass);
+  }
+
   /**
    * Unsubscribe from Home Assistant forecast events
    * Typically called when the card is disconnected from the DOM or
@@ -125,24 +150,16 @@ export class BomWeatherCard extends LitElement {
   private async _subscribeForecastEvents() {
     this._unsubscribeForecastEvents();
 
-    if (
-      !this.isConnected ||
-      !this._initialized ||
-      !this.hass ||
-      !this._config
-    ) {
+    if (!this.isConnected || !this._initialized || !this.hass || !this._config) {
       return;
     }
 
-    const forecastEntityId =
-      this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id;
+    const forecastEntityId = this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id;
 
-    log.trace('_subscribeForecastEvents()', {forecastEntityId});
+    log.debug('_subscribeForecastEvents()', {forecastEntityId});
 
     if (!forecastEntityId) {
-      log.warn(
-        '⚠️ No Forecast Entity specified. Skipping subscription to daily forecast.'
-      );
+      log.warn('⚠️ No Forecast Entity specified. Skipping subscription to daily forecast.');
       return;
     }
 
@@ -158,7 +175,7 @@ export class BomWeatherCard extends LitElement {
   }
 
   protected override firstUpdated(): void {
-    const initTasks = [this._calculateCardEntities];
+    const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
 
     Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
       this._initialized = true;
@@ -167,7 +184,7 @@ export class BomWeatherCard extends LitElement {
 
   protected override updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
-    log.trace('updated():', changedProps);
+    log.debug('updated():', changedProps);
 
     // Subscribe to forecast events if not already subscribed
     if (!this._dailyForecastSubscribed || changedProps.has('_config')) {
@@ -182,6 +199,11 @@ export class BomWeatherCard extends LitElement {
 
     if (changedProps.has('_dailyForecastEvent')) {
       log.debug('_dailyForecastEvent changed', this._dailyForecastEvent);
+    }
+
+    // Update the weather class that is assigned to the card
+    if (changedProps.has('_cardEntities')) {
+      this._calculateWeatherClass();
     }
 
     // TODO: ensure the efficiency of this check is maximized
@@ -255,8 +277,7 @@ export class BomWeatherCard extends LitElement {
       CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
     );
 
-    const showNowLater =
-      this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
+    const showNowLater = this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
     const showNowLaterNow = shouldRenderEntity(
       this._config,
       this._cardEntities,
@@ -278,10 +299,7 @@ export class BomWeatherCard extends LitElement {
         CONFIG_PROP.WARNING_COUNT_ENTITY_ID
       ) &&
       (!this._config[CONFIG_PROP.HIDE_WARNING_COUNT_IF_ZERO] ||
-        (getCardEntityValueAsNumber(
-          this.hass,
-          this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]
-        ) ?? 0) > 0);
+        (getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]) ?? 0) > 0);
 
     const showRainSummary = shouldRenderEntity(
       this._config,
@@ -290,10 +308,7 @@ export class BomWeatherCard extends LitElement {
       CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID
     );
 
-    const rainSummary = getCardEntityValueAsString(
-      this.hass,
-      this._cardEntities[CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]
-    );
+    const rainSummary = getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]);
 
     const showForecastSummary = shouldRenderEntity(
       this._config,
@@ -317,12 +332,7 @@ export class BomWeatherCard extends LitElement {
                     this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
                   )}
                   .feelsLikeTemperature=${showFeelsLikeTemperature
-                    ? getCardEntityValueAsNumber(
-                        this.hass,
-                        this._cardEntities[
-                          CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
-                        ]
-                      )
+                    ? getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID])
                     : undefined}
                 ></bwc-temperature-element>`
               : nothing}
@@ -334,9 +344,7 @@ export class BomWeatherCard extends LitElement {
                     center: showTime,
                     right: !showTime,
                   })}
-                  .useHAWeatherIcons=${this._config[
-                    CONFIG_PROP.USE_HA_WEATHER_ICONS
-                  ] === true}
+                  .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
                   .weatherIcon=${getCardEntityValueAsString(
                     this.hass,
                     this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
@@ -350,12 +358,8 @@ export class BomWeatherCard extends LitElement {
                   class="item right"
                   .hass=${this.hass}
                   .showDate=${showDate}
-                  .cardTimeEntity=${this._cardEntities[
-                    CONFIG_PROP.TIME_ENTITY_ID
-                  ]}
-                  .cardDateEntity=${this._cardEntities[
-                    CONFIG_PROP.DATE_ENTITY_ID
-                  ]}
+                  .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
+                  .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
                 ></bwc-time-date-element>`
               : nothing}
           </div> `
@@ -374,9 +378,7 @@ export class BomWeatherCard extends LitElement {
                   )}
                   .label=${getCardEntityValueAsString(
                     this.hass,
-                    this._cardEntities[
-                      CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID
-                    ]
+                    this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]
                   )}
                 ></bwc-temperature-element> `
               : nothing}
@@ -386,15 +388,11 @@ export class BomWeatherCard extends LitElement {
                   .decimalPlaces=${0}
                   .value=${getCardEntityValueAsNumber(
                     this.hass,
-                    this._cardEntities[
-                      CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
-                    ]
+                    this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]
                   )}
                   .label=${getCardEntityValueAsString(
                     this.hass,
-                    this._cardEntities[
-                      CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID
-                    ]
+                    this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]
                   )}
                 ></bwc-temperature-element> `
               : nothing}
@@ -416,9 +414,7 @@ export class BomWeatherCard extends LitElement {
           ? html`<bwc-value-label-element
               class="item"
               .value=${`${rainSummary === '0' ? this.localize('card.noRain') : `${rainSummary}mm`}`}
-              .label=${rainSummary === '0'
-                ? undefined
-                : this.localize('card.rain')}
+              .label=${rainSummary === '0' ? undefined : this.localize('card.rain')}
             ></bwc-value-label-element> `
           : nothing}
         ${showForecastSummary
@@ -435,7 +431,8 @@ export class BomWeatherCard extends LitElement {
   }
 
   public override render() {
-    log.trace('🖼️ Rendering card with state:', {
+    log.debug('🖼️ Rendering card with state:', {
+      weatherClass: this._weatherClass,
       hass: this.hass,
       config: this._config,
       forecast: this._dailyForecastEvent,
@@ -447,12 +444,11 @@ export class BomWeatherCard extends LitElement {
         night: !this._dayMode,
         'dark-mode': this._darkMode,
         'light-mode': !this._darkMode,
+        [this._weatherClass]: true,
       })}"
     >
       <!-- Card Header -->
-      ${this._config.title
-        ? html`<h1 class="card-header">${this._config.title}</h1>`
-        : nothing}
+      ${this._config.title ? html`<h1 class="card-header">${this._config.title}</h1>` : nothing}
 
       <!-- Summary -->
       ${this._renderSummary()}

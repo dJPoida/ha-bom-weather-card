@@ -11,6 +11,8 @@ export const cssVariables = css`
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
+    --bwc-background-color-day-stormy-start: #90959d;
+    --bwc-background-color-day-stormy-end: #acb5bc;
     --bwc-time-date-time-font-size: var(--bwc-large-font-size);
     --bwc-time-date-date-font-size: var(--bwc-regular-font-size);
     --bwc-temperature-number-large-font-size: var(--bwc-large-font-size);
@@ -34,24 +36,6 @@ export const cssVariables = css`
     --bwc-text-color-inverted: var(--text-primary-color);
     --bwc-background-color-start: var(--bwc-background-color-day-start);
     --bwc-background-color-end: var(--bwc-background-color-day-end);
-
-    /* Light Theme / Night Mode */
-    ha-card.night {
-      --bwc-text-color: var(--text-primary-color);
-      --bwc-text-color-inverted: var(--text-light-primary-color);
-      --bwc-background-color-start: var(--bwc-background-color-night-start);
-      --bwc-background-color-end: var(--bwc-background-color-night-end);
-    }
-
-    /* Dark Theme / Day Mode */
-    ha-card.dark-mode {
-      color: var(--text-light-primary-color);
-
-      /* Dark Theme / Night Mode */
-      &.night {
-        color: var(--text-primary-color);
-      }
-    }
 
     /* Home Assistant Theme Overrides */
     --ha-card-header-color: var(--bwc-text-color);
