@@ -3,10 +3,7 @@
  * @TODO Attribution
  */
 import {HomeAssistant} from 'custom-card-helpers';
-import type {
-  HassEntityAttributeBase,
-  HassEntityBase,
-} from 'home-assistant-js-websocket';
+import type {HassEntityAttributeBase, HassEntityBase} from 'home-assistant-js-websocket';
 import {supportsFeature} from './supports-feature';
 
 export const enum WeatherEntityFeature {
@@ -19,7 +16,7 @@ export type ModernForecastType = 'hourly' | 'daily' | 'twice_daily';
 
 export type ForecastType = ModernForecastType | 'legacy';
 
-interface ForecastAttribute {
+export interface ForecastAttribute {
   temperature: number;
   datetime: string;
   templow?: number;
@@ -61,9 +58,7 @@ export interface WeatherEntity extends HassEntityBase {
 const EIGHT_HOURS = 28800000;
 const DAY_IN_MILLISECONDS = 86400000;
 
-const isForecastHourly = (
-  forecast?: ForecastAttribute[]
-): boolean | undefined => {
+const isForecastHourly = (forecast?: ForecastAttribute[]): boolean | undefined => {
   if (forecast && forecast?.length && forecast?.length > 2) {
     const date1 = new Date(forecast[1].datetime);
     const date2 = new Date(forecast[2].datetime);
@@ -75,9 +70,7 @@ const isForecastHourly = (
   return undefined;
 };
 
-const isForecastTwiceDaily = (
-  forecast?: ForecastAttribute[]
-): boolean | undefined => {
+const isForecastTwiceDaily = (forecast?: ForecastAttribute[]): boolean | undefined => {
   if (forecast && forecast?.length && forecast?.length > 2) {
     const date1 = new Date(forecast[1].datetime);
     const date2 = new Date(forecast[2].datetime);
@@ -97,9 +90,7 @@ export type WeatherUnits = {
   wind_speed_unit: string[];
 };
 
-export const getWeatherConvertibleUnits = (
-  hass: HomeAssistant
-): Promise<{units: WeatherUnits}> =>
+export const getWeatherConvertibleUnits = (hass: HomeAssistant): Promise<{units: WeatherUnits}> =>
   hass.callWS({
     type: 'weather/convertible_units',
   });
@@ -141,11 +132,7 @@ export const getForecast = (
     }
   | undefined => {
   if (forecast_type === undefined) {
-    if (
-      forecast_event?.type !== undefined &&
-      forecast_event?.forecast &&
-      forecast_event?.forecast?.length > 2
-    ) {
+    if (forecast_event?.type !== undefined && forecast_event?.forecast && forecast_event?.forecast?.length > 2) {
       return {forecast: forecast_event.forecast, type: forecast_event?.type};
     }
     return getLegacyForecast(weather_attributes);
@@ -155,11 +142,7 @@ export const getForecast = (
     return getLegacyForecast(weather_attributes);
   }
 
-  if (
-    forecast_type === forecast_event?.type &&
-    forecast_event?.forecast &&
-    forecast_event?.forecast?.length > 2
-  ) {
+  if (forecast_type === forecast_event?.type && forecast_event?.forecast && forecast_event?.forecast?.length > 2) {
     return {forecast: forecast_event.forecast, type: forecast_type};
   }
 
@@ -178,9 +161,7 @@ export const subscribeForecast = (
     entity_id,
   });
 
-export const getSupportedForecastTypes = (
-  stateObj: HassEntityBase
-): ModernForecastType[] => {
+export const getSupportedForecastTypes = (stateObj: HassEntityBase): ModernForecastType[] => {
   const supported: ModernForecastType[] = [];
   if (supportsFeature(stateObj, WeatherEntityFeature.FORECAST_DAILY)) {
     supported.push('daily');

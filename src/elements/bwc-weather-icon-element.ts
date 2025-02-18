@@ -2,18 +2,20 @@ import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
-import {WEATHER_ICON} from '../constants/weather-icons.const';
+import {AN_ICON_SIZE, ICON_SIZE} from '../constants/icon-size.const';
+import {A_WEATHER_ICON, WEATHER_ICON} from '../constants/weather-icons.const';
 import {elementStyles} from '../styles/element.style';
 
 @customElement('bwc-weather-icon-element')
 export class WeatherIconElement extends LitElement {
-  @property({type: String}) public weatherIcon: string | undefined;
+  @property({type: String}) public weatherIcon: A_WEATHER_ICON | undefined;
   @property({type: Boolean}) public useHAWeatherIcons: boolean = false;
+  @property({type: String}) public iconSize: AN_ICON_SIZE = ICON_SIZE.REGULAR;
 
   override render() {
     if (!this.weatherIcon) return nothing;
 
-    return html`<div class=${classNames('weather-icon-element')}>
+    return html`<div class=${classNames('weather-icon-element', this.iconSize, this.weatherIcon)}>
       ${this.useHAWeatherIcons
         ? html`<ha-icon icon="mdi:weather-${this.weatherIcon}"></ha-icon>`
         : html`${unsafeHTML(WEATHER_ICON[this.weatherIcon])}`}
@@ -37,6 +39,22 @@ export class WeatherIconElement extends LitElement {
 
         svg {
           height: var(--bwc-weather-icon-height);
+        }
+
+        &.huge {
+          --bwc-weather-icon-height: var(--bwc-huge-icon-size);
+        }
+
+        &.large {
+          --bwc-weather-icon-height: var(--bwc-large-icon-size);
+        }
+
+        &.regular {
+          --bwc-weather-icon-height: var(--bwc-regular-icon-size);
+        }
+
+        &.small {
+          --bwc-weather-icon-height: var(--bwc-regular-font-size);
         }
       }
     `;

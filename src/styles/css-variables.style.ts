@@ -7,6 +7,10 @@ export const cssVariables = css`
     --bwc-medium-font-size: 2rem;
     --bwc-regular-font-size: 1.2rem;
 
+    --bwc-huge-icon-size: 6rem;
+    --bwc-large-icon-size: 4.5rem;
+    --bwc-regular-icon-size: 3rem;
+
     --bwc-background-color-day-start: #63b0ff;
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
@@ -20,7 +24,7 @@ export const cssVariables = css`
     --bwc-temperature-description-font-size: var(--bwc-regular-font-size);
     --bwc-value-label-value-font-size: var(--bwc-medium-font-size);
     --bwc-value-label-label-font-size: var(--bwc-regular-font-size);
-    --bwc-weather-icon-height: 6rem;
+    --bwc-weather-icon-height: var(--bwc-huge-icon-size);
     --bwc-min-height: 10rem;
     --bwc-global-padding: 16px;
     --bwc-item-container-height: 5rem;

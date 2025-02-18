@@ -38,4 +38,7 @@ export const WEATHER_ICON: Record<A_WEATHER_CONDITION, string> = {
   [WEATHER_CONDITION.SUNNY]: sunny,
   [WEATHER_CONDITION.WINDY_VARIANT]: windyVariant,
   [WEATHER_CONDITION.WINDY]: windy,
-};
+} as const;
+
+export type WEATHER_ICON = typeof WEATHER_ICON;
+export type A_WEATHER_ICON = WEATHER_ICON[keyof WEATHER_ICON];

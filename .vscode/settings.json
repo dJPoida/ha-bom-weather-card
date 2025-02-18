@@ -11,6 +11,7 @@
     "homeassistant",
     "partlycloudy",
     "rollup",
+    "templow",
     "unsub"
   ],
   "typescript.tsdk": "node_modules\\typescript\\lib",

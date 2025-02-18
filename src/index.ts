@@ -1,6 +1,8 @@
 import log from 'loglevel';
 import {version} from '../package.json';
 import './elements/bom-weather-card';
+import './elements/bwc-daily-forecast-element';
+import './elements/bwc-summary-element';
 import './elements/bwc-temperature-element';
 import './elements/bwc-time-date-element';
 import './elements/bwc-value-label-element';

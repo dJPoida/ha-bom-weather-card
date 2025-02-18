@@ -1,6 +1,6 @@
 import classnames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
-import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues, TemplateResult, unsafeCSS} from 'lit';
+import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import log from 'loglevel';
 import {version} from '../../package.json';
@@ -10,10 +10,8 @@ import {A_LANGUAGE, DEFAULT_LANGUAGE} from '../constants/languages.const';
 import {WEATHER_CONDITION_CLASSES} from '../constants/weather-condition-classes.const';
 import {A_WEATHER_CONDITION} from '../constants/weather-conditions.const';
 import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
-import {getCardEntityValueAsNumber} from '../helpers/get-card-entity-value-as-number';
 import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
 import {isDayMode} from '../helpers/is-day-mode.helper';
-import {shouldRenderEntity} from '../helpers/should-render-entity.helper';
 import {ForecastEvent, subscribeForecast} from '../lib/weather';
 import {getLocalizer} from '../localize/localize';
 import {containerStyles} from '../styles/container.style';
@@ -44,8 +42,6 @@ export class BomWeatherCard extends LitElement {
   private _initialized = false;
 
   static override get styles(): CSSResultGroup {
-    const backgroundsBaseUrl = new URL('img/backgrounds', import.meta.url).toString();
-
     return css`
       ${cssVariables}
       ${globalStyles}
@@ -54,45 +50,10 @@ export class BomWeatherCard extends LitElement {
       ha-card {
         color: var(--bwc-text-color);
 
-        --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
-
         min-height: var(--bwc-min-height);
-        /* TODO: make this configurable */
-        background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
-          var(--background-url);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-blend-mode: overlay;
 
         /* TODO: make this configurable */
         border: none;
-
-        /* Light Theme / Night Mode */
-        &.night {
-          --bwc-text-color: var(--text-primary-color);
-          --bwc-text-color-inverted: var(--text-light-primary-color);
-          --bwc-background-color-start: var(--bwc-background-color-night-start);
-          --bwc-background-color-end: var(--bwc-background-color-night-end);
-        }
-
-        /* Dark Theme / Day Mode */
-        &.dark-mode {
-          color: var(--text-light-primary-color);
-
-          /* Dark Theme / Night Mode */
-          &.night {
-            color: var(--text-primary-color);
-          }
-        }
-
-        /* Stormy (same in dark mode) */
-        &.stormy,
-        &.dark-mode.stormy {
-          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/stormy.png`)});
-          --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
-          --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
-        }
       }
 
       h1.card-header {
@@ -241,195 +202,6 @@ export class BomWeatherCard extends LitElement {
     this._unsubscribeForecastEvents();
   }
 
-  private _renderSummary(): TemplateResult {
-    const showCurrentTemp = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_CURRENT_TEMP,
-      CONFIG_PROP.CURRENT_TEMP_ENTITY_ID
-    );
-
-    const showWeatherIcon = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_WEATHER_ICON,
-      CONFIG_PROP.WEATHER_ICON_ENTITY_ID
-    );
-
-    const showTime = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_TIME,
-      CONFIG_PROP.TIME_ENTITY_ID
-    );
-
-    const showDate = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_DATE,
-      CONFIG_PROP.DATE_ENTITY_ID
-    );
-
-    const showFeelsLikeTemperature = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
-      CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID
-    );
-
-    const showNowLater = this._config[CONFIG_PROP.SHOW_NOW_LATER_TEMPS] === true;
-    const showNowLaterNow = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
-      CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID
-    );
-    const showNowLaterLater = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_NOW_LATER_TEMPS,
-      CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID
-    );
-
-    const showWarningCount =
-      shouldRenderEntity(
-        this._config,
-        this._cardEntities,
-        CONFIG_PROP.SHOW_WARNING_COUNT,
-        CONFIG_PROP.WARNING_COUNT_ENTITY_ID
-      ) &&
-      (!this._config[CONFIG_PROP.HIDE_WARNING_COUNT_IF_ZERO] ||
-        (getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]) ?? 0) > 0);
-
-    const showRainSummary = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_RAIN_SUMMARY,
-      CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID
-    );
-
-    const rainSummary = getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]);
-
-    const showForecastSummary = shouldRenderEntity(
-      this._config,
-      this._cardEntities,
-      CONFIG_PROP.SHOW_FORECAST_SUMMARY,
-      CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID
-    );
-
-    return html`<div class="summary">
-      <!-- First Row (Current temp, weather icon and time/date) -->
-      ${showCurrentTemp || showWeatherIcon || showTime
-        ? html`<div class="item-container reverse">
-            <!-- Current Temperature -->
-            ${showCurrentTemp
-              ? html`<bwc-temperature-element
-                  class="item"
-                  .localize=${this.localize}
-                  .isLarge=${true}
-                  .value=${getCardEntityValueAsNumber(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]
-                  )}
-                  .feelsLikeTemperature=${showFeelsLikeTemperature
-                    ? getCardEntityValueAsNumber(this.hass, this._cardEntities[CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID])
-                    : undefined}
-                ></bwc-temperature-element>`
-              : nothing}
-
-            <!-- Weather Icon  -->
-            ${showWeatherIcon
-              ? html`<bwc-weather-icon-element
-                  class=${classnames('item', {
-                    center: showTime,
-                    right: !showTime,
-                  })}
-                  .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
-                  .weatherIcon=${getCardEntityValueAsString(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
-                  )}
-                ></bwc-weather-icon-element>`
-              : nothing}
-
-            <!-- Time -->
-            ${showTime
-              ? html`<bwc-time-date-element
-                  class="item right"
-                  .hass=${this.hass}
-                  .showDate=${showDate}
-                  .cardTimeEntity=${this._cardEntities[CONFIG_PROP.TIME_ENTITY_ID]}
-                  .cardDateEntity=${this._cardEntities[CONFIG_PROP.DATE_ENTITY_ID]}
-                ></bwc-time-date-element>`
-              : nothing}
-          </div> `
-        : nothing}
-
-      <!-- Second Row (now/later temps and warnings) -->
-      ${showNowLater || showWarningCount
-        ? html`<div class="item-container justify-left">
-            ${showNowLaterNow
-              ? html`<bwc-temperature-element
-                  class="item left no-grow"
-                  .decimalPlaces=${0}
-                  .value=${getCardEntityValueAsNumber(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID]
-                  )}
-                  .label=${getCardEntityValueAsString(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID]
-                  )}
-                ></bwc-temperature-element> `
-              : nothing}
-            ${showNowLaterLater
-              ? html`<bwc-temperature-element
-                  class="item left no-grow"
-                  .decimalPlaces=${0}
-                  .value=${getCardEntityValueAsNumber(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_TEMP_ENTITY_ID]
-                  )}
-                  .label=${getCardEntityValueAsString(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID]
-                  )}
-                ></bwc-temperature-element> `
-              : nothing}
-            ${showWarningCount
-              ? html`<bwc-warnings-icon-element
-                  class="item right"
-                  .value=${getCardEntityValueAsNumber(
-                    this.hass,
-                    this._cardEntities[CONFIG_PROP.WARNING_COUNT_ENTITY_ID]
-                  )}
-                ></bwc-warnings-icon-element> `
-              : nothing}
-          </div> `
-        : nothing}
-
-      <!-- Third and Fourth Row -->
-      <div class="item-container column">
-        ${showRainSummary
-          ? html`<bwc-value-label-element
-              class="item"
-              .value=${`${rainSummary === '0' ? this.localize('card.noRain') : `${rainSummary}mm`}`}
-              .label=${rainSummary === '0' ? undefined : this.localize('card.rain')}
-            ></bwc-value-label-element> `
-          : nothing}
-        ${showForecastSummary
-          ? html`<bwc-value-label-element
-              class="item"
-              .value=${getCardEntityValueAsString(
-                this.hass,
-                this._cardEntities[CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID]
-              )}
-            ></bwc-value-label-element>`
-          : nothing}
-      </div>
-    </div> `;
-  }
-
   public override render() {
     log.debug('🖼️ Rendering card with state:', {
       weatherClass: this._weatherClass,
@@ -451,13 +223,30 @@ export class BomWeatherCard extends LitElement {
       ${this._config.title ? html`<h1 class="card-header">${this._config.title}</h1>` : nothing}
 
       <!-- Summary -->
-      ${this._renderSummary()}
+      <bwc-summary-element
+        .hass=${this.hass}
+        .config=${this._config}
+        .cardEntities=${this._cardEntities}
+        .localize=${this.localize}
+        .dayMode=${this._dayMode}
+        .darkMode=${this._darkMode}
+        .weatherClass=${this._weatherClass}
+        .weatherSummaryData=${this._weatherSummaryData}
+      ></bwc-summary-element>
+
+      <!-- Daily Forecast -->
+      ${this._dailyForecastEvent
+        ? html`<bwc-daily-forecast-element
+            .forecastData=${this._dailyForecastEvent}
+            .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] ?? false}
+          ></bwc-daily-forecast-element>`
+        : nothing}
 
       <!-- Debug Info -->
       <div class="bwc-debug item-container">
         <span class="version">Version ${version}</span>
       </div>
-    </ha-card> `;
+    </ha-card>`;
   }
 
   /**
