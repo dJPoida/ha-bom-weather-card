@@ -39,6 +39,7 @@ export const CONFIG_PROP = {
   SHOW_HOURLY_FORECAST: 'show_hourly_forecast',
 
   SHOW_DAILY_FORECAST: 'show_daily_forecast',
+  DAILY_FORECAST_NUMBER_OF_DAYS: 'daily_forecast_number_of_days',
 } as const;
 
 export type CONFIG_PROP = typeof CONFIG_PROP;

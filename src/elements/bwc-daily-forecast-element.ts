@@ -11,52 +11,60 @@ export class BwcDailyForecastElement extends LitElement {
 
   static override styles: CSSResultGroup = css`
     :host {
-      color: white;
+      color: var(--bwc-text-color);
     }
 
     .container {
       display: flex;
       flex-direction: column;
-      padding: 16px;
+      padding: var(--bwc-global-padding);
     }
+
     .title {
-      font-size: 1.5em;
-      font-weight: bold;
-      margin-bottom: 16px;
+      font-size: var(--bwc-section-header-font-size);
+      margin-bottom: var(--bwc-global-padding);
     }
+
     .forecast-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
+      padding: calc(var(--bwc-global-padding) / 2) 0;
     }
+
     .forecast-row:not(:last-child) {
       border-bottom: 1px solid var(--divider-color);
     }
+
     .day {
       flex: 2;
       font-weight: bold;
       text-align: left;
+      font-size: var(--bwc-daily-forecast-day-font-size);
     }
+
     .icon {
       flex: 1;
       text-align: left;
     }
+
     .temperature {
-      flex: 2;
+      flex: 1;
       text-align: right;
-      font-size: 1.2em;
+      font-size: var(--bwc-daily-forecast-temp-font-size);
     }
+
     .rain {
       flex: 2;
       text-align: right;
       font-size: 0.9em;
+      font-size: var(--bwc-daily-forecast-rain-font-size);
     }
   `;
 
   private _renderForecastRow(
     day: string,
-    low: number,
+    low: number | undefined,
     high: number,
     rain: number,
     rainChance: number,
@@ -70,7 +78,7 @@ export class BwcDailyForecastElement extends LitElement {
           .weatherIcon=${condition}
           .iconSize=${ICON_SIZE.REGULAR}
         ></bwc-weather-icon-element>
-        <div class="temperature">${low}° - ${high}°</div>
+        <div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>
         <div class="rain">${rain === 0 ? 'No Rain' : `${rain}mm`}${rain === 0 ? '' : ` (${rainChance}%)`}</div>
       </div>
     `;
@@ -84,7 +92,7 @@ export class BwcDailyForecastElement extends LitElement {
     const forecastRows = this.forecastData.forecast.map((dayForecast: ForecastAttribute) =>
       this._renderForecastRow(
         new Date(dayForecast.datetime).toLocaleDateString('en-US', {weekday: 'long'}),
-        dayForecast.templow ?? 0,
+        dayForecast.templow ?? undefined,
         dayForecast.temperature,
         dayForecast.precipitation ?? 0,
         dayForecast.precipitation_probability ?? 0,

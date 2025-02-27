@@ -21,6 +21,7 @@
     "laterTempEntity": "Later Temp Entity",
     "nowLabelEntity": "Now Label Entity",
     "nowTempEntity": "Now Temp Entity",
+    "numberOfDays": "Number of Days",
     "optional": "Optional",
     "rainSummaryEntity": "Rain Summary Entity",
     "required": "Required",

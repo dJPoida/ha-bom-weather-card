@@ -33,13 +33,15 @@ export const cssVariables = css`
     --bwc-warning-icon-size: var(--bwc-medium-font-size);
     --bwc-warning-font-size: var(--bwc-regular-font-size);
     --bwc-waring-text-color: var(--text-light-primary-color);
+    --bwc-section-header-font-size: 1.5rem;
+    --bwc-daily-forecast-day-font-size: var(--bwc-regular-font-size);
+    --bwc-daily-forecast-temp-font-size: var(--bwc-regular-font-size);
+    --bwc-daily-forecast-rain-font-size: var(--bwc-regular-font-size);
 
     /* Conditional Colors based on Day/Night and Dark/Light Theme */
     /* Light Theme / Day Mode */
-    --bwc-text-color: var(--text-light-primary-color);
-    --bwc-text-color-inverted: var(--text-primary-color);
-    --bwc-background-color-start: var(--bwc-background-color-day-start);
-    --bwc-background-color-end: var(--bwc-background-color-day-end);
+    --bwc-text-color: var(--text-primary-color);
+    --bwc-text-color-inverted: var(--text-light-primary-color);
 
     /* Home Assistant Theme Overrides */
     --ha-card-header-color: var(--bwc-text-color);

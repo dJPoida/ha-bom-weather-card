@@ -1,4 +1,4 @@
-import classnames from 'classnames';
+import {default as classnames, default as classNames} from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing, unsafeCSS} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
@@ -34,7 +34,7 @@ export class SummaryElement extends LitElement {
       ${globalStyles}
       ${containerStyles}
 
-      :host {
+      .summary {
         /* TODO: implement the remainder of the condition backgrounds */
         --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
 
@@ -48,6 +48,13 @@ export class SummaryElement extends LitElement {
         background-size: cover;
         background-blend-mode: overlay;
         border-radius: var(--ha-card-border-radius, 12px);
+
+        /* Conditional Colors based on Day/Night and Dark/Light Theme */
+        /* Light Theme / Day Mode */
+        --bwc-text-color: var(--text-light-primary-color);
+        --bwc-text-color-inverted: var(--text-primary-color);
+        --bwc-background-color-start: var(--bwc-background-color-day-start);
+        --bwc-background-color-end: var(--bwc-background-color-day-end);
 
         /* Light Theme / Night Mode */
         &.night {
@@ -92,6 +99,9 @@ export class SummaryElement extends LitElement {
       CONFIG_PROP.SHOW_WEATHER_ICON,
       CONFIG_PROP.WEATHER_ICON_ENTITY_ID
     );
+    const weatherIcon = showWeatherIcon
+      ? getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])
+      : '';
 
     const showTime = shouldRenderEntity(
       this.config,
@@ -154,7 +164,13 @@ export class SummaryElement extends LitElement {
       CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID
     );
 
-    return html`<div class="summary">
+    return html`<div
+      class=${classNames('summary', this.weatherClass, {
+        day: this.dayMode,
+        night: !this.dayMode,
+        'dark-mode': this.darkMode,
+      })}
+    >
       <!-- First Row (Current temp, weather icon and time/date) -->
       ${showCurrentTemp || showWeatherIcon || showTime
         ? html`<div class="item-container reverse">
@@ -180,10 +196,7 @@ export class SummaryElement extends LitElement {
                   })}
                   .iconSize=${ICON_SIZE.HUGE}
                   .useHAWeatherIcons=${this.config[CONFIG_PROP.USE_HA_WEATHER_ICONS] === true}
-                  .weatherIcon=${getCardEntityValueAsString(
-                    this.hass,
-                    this.cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]
-                  )}
+                  .weatherIcon=${weatherIcon}
                 ></bwc-weather-icon-element>`
               : nothing}
 

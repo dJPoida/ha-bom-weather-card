@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
+import {A_DAY_MODE, DAY_MODE} from '../constants/day-mode.const';
 import {AN_ICON_SIZE, ICON_SIZE} from '../constants/icon-size.const';
 import {A_WEATHER_ICON, WEATHER_ICON} from '../constants/weather-icons.const';
 import {elementStyles} from '../styles/element.style';
@@ -11,6 +12,7 @@ export class WeatherIconElement extends LitElement {
   @property({type: String}) public weatherIcon: A_WEATHER_ICON | undefined;
   @property({type: Boolean}) public useHAWeatherIcons: boolean = false;
   @property({type: String}) public iconSize: AN_ICON_SIZE = ICON_SIZE.REGULAR;
+  @property({type: String}) public dayMode: A_DAY_MODE = DAY_MODE.DAY;
 
   override render() {
     if (!this.weatherIcon) return nothing;
@@ -18,7 +20,7 @@ export class WeatherIconElement extends LitElement {
     return html`<div class=${classNames('weather-icon-element', this.iconSize, this.weatherIcon)}>
       ${this.useHAWeatherIcons
         ? html`<ha-icon icon="mdi:weather-${this.weatherIcon}"></ha-icon>`
-        : html`${unsafeHTML(WEATHER_ICON[this.weatherIcon])}`}
+        : html`${unsafeHTML(WEATHER_ICON[this.dayMode][this.weatherIcon])}`}
     </div>`;
   }
 

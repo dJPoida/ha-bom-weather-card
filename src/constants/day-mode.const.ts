@@ -1,6 +1,5 @@
 export const DAY_MODE = {
   DAY: 'day',
-  EVENING: 'evening',
   NIGHT: 'night',
 };
 

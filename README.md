@@ -191,7 +191,7 @@ All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants
 
 # Acknowledgements
 
-- Thanks to [Bas Milius](https://bas.dev) for the weather icons used in this project. check out his project here: [Meteocons v2.0.0](https://github.com/basmilius/weather-icons/releases/tag/v2.0.0).
+- Thanks to [Makin-Things for the weather icons](https://github.com/Makin-Things/weather-icons) used in this project.
 - Thanks to [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) for being the inspiration behind making this front end component
 
 # TODO

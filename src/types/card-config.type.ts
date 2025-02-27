@@ -2,10 +2,7 @@ import {LovelaceCardConfig} from 'custom-card-helpers';
 import {CONFIG_PROP} from '../constants/config-prop.const';
 
 // Create a new type that includes all properties of LovelaceCardConfig except the index signature
-type StrictLovelaceCardConfig = Pick<
-  LovelaceCardConfig,
-  'index' | 'view_index' | 'type'
->;
+type StrictLovelaceCardConfig = Pick<LovelaceCardConfig, 'index' | 'view_index' | 'type'>;
 
 export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.TITLE]: string | undefined;
@@ -49,4 +46,5 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.SHOW_HOURLY_FORECAST]: boolean | undefined;
 
   [CONFIG_PROP.SHOW_DAILY_FORECAST]: boolean | undefined;
+  [CONFIG_PROP.DAILY_FORECAST_NUMBER_OF_DAYS]: number | undefined;
 };
