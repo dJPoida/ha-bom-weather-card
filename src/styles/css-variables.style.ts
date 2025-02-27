@@ -7,7 +7,7 @@ export const cssVariables = css`
     --bwc-medium-font-size: 2rem;
     --bwc-regular-font-size: 1.2rem;
 
-    --bwc-huge-icon-size: 6rem;
+    --bwc-huge-icon-size: 5rem;
     --bwc-large-icon-size: 4.5rem;
     --bwc-regular-icon-size: 3rem;
 

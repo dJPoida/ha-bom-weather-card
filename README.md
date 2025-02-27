@@ -1,10 +1,19 @@
 # BOM (Bureau of Meteorology) Weather Card
 
-[![License][license-shield]](LICENSE)
-
 A [Home Assistant](https://www.home-assistant.io) card designed to display weather information in the style of the [BOM (Bureau of Meteorology) Australia app](https://play.google.com/store/apps/details?id=au.gov.bom.metview&hl=en_AU)
 
-**TODO: Insert Screenshots**
+![Example 01](design/app-screenshots/example-01.png)
+
+## Features
+
+- All elements have configurable visibility and entity source selection
+- Entities are automatically inferred from the selected weather device to simplify configuration
+- Responds to the `sun.sun` entity for Day / Night mode
+- Responds to the current theme to adjust for dark/light mode theme settings
+- Shows different "now / then" values depending on the time of day (this is assumed behavior derived from observing the app and not verified as exactly how the BOM app behaves):
+  - 4am -> 12pm (Morning): Min / Max (Last night's min, Today's Max)
+  - 12pm -> 6pm (Afternoon): Max / Overnight Min (Today's Max, Tonight's Min)
+  - 6pm -> 4am (Evening): Overnight Min / Tomorrow's Max (Tonight's Min, Tomorrow's Max)
 
 ## Weather Providers
 
@@ -13,16 +22,6 @@ This card works best when paired with [Bremor's Bureau of Meteorology Custom Com
 ## Date & Time Sensors
 
 To enable the Date and Time features your Home Assistant instance must have both the [Date and Time sensor](https://www.home-assistant.io/integrations/time_date) entities enabled in the Devices & Services -> Integrations.
-
-## Behavior
-
-- Responds to the `sun.sun` entity for Day / Night mode
-- Responds to the current theme to adjust for dark/light mode theme settings
-- Shows different values depending on the time of day (this is assumed behavior derived from observing the app and not verified as exactly how the BOM app behaves):
-  - 4am -> 12pm (Morning): Min / Max (Last night's min, Today's Max)
-  - 12pm -> 6pm (Afternoon): Max / Overnight Min (Today's Max, Tonight's Min)
-  - 6pm -> 4am (Evening): Overnight Min / Tomorrow's Max (Tonight's Min, Tomorrow's Max)
-- Automatically infers entities and weather attributes from the configured weather device
 
 # Development
 

@@ -22,6 +22,7 @@ export const containerStyles = css`
       --bwc-item-justify-content: flex-start;
       flex: 1;
       display: flex;
+      align-items: center;
       justify-content: var(--bwc-item-justify-content);
 
       &.left {
