@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, TemplateResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {ICON_SIZE} from '../constants/icon-size.const';
@@ -25,40 +24,50 @@ export class BwcDailyForecastElement extends LitElement {
       margin-bottom: var(--bwc-global-padding);
     }
 
-    .forecast-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: calc(var(--bwc-global-padding) / 2) 0;
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: max-content auto max-content max-content;
+      align-items: center; /* Vertically center items in each cell */
+      gap: 0 calc(var(--bwc-global-padding) / 2); /* Add horizontal gap between columns */
     }
 
-    .forecast-row:not(:last-child) {
+    /* Apply bottom border to all direct children of the grid except the last set */
+    /* The number of children per row is 4 (day, icon, temp, rain) */
+    .forecast-grid > *:not(:nth-last-child(-n + 4)) {
       border-bottom: 1px solid var(--divider-color);
+      padding-bottom: calc(var(--bwc-global-padding) / 2);
+      margin-bottom: calc(var(--bwc-global-padding) / 2);
     }
 
     .day {
-      flex: 2;
       font-weight: bold;
       text-align: left;
       font-size: var(--bwc-daily-forecast-day-font-size);
+      /* Consistent padding for vertical alignment */
+      padding: calc(var(--bwc-global-padding) / 2) 0;
     }
 
-    .icon {
-      flex: 1;
-      text-align: left;
+    .icon-container {
+      /* Container for centering icon */
+      display: flex;
+      justify-content: flex-start; /* Align icon to the start */
+      align-items: center;
+      /* Consistent padding for vertical alignment */
+      padding: calc(var(--bwc-global-padding) / 2) 0;
     }
 
     .temperature {
-      flex: 1;
       text-align: right;
       font-size: var(--bwc-daily-forecast-temp-font-size);
+      /* Consistent padding for vertical alignment */
+      padding: calc(var(--bwc-global-padding) / 2) 0;
     }
 
     .rain {
-      flex: 2;
       text-align: right;
-      font-size: 0.9em;
       font-size: var(--bwc-daily-forecast-rain-font-size);
+      /* Consistent padding for vertical alignment */
+      padding: calc(var(--bwc-global-padding) / 2) 0;
     }
   `;
 
@@ -70,17 +79,20 @@ export class BwcDailyForecastElement extends LitElement {
     rainChance: number,
     condition: string
   ): TemplateResult {
+    // Each element is now a direct child of the grid container.
+    // The classNames for condition might be added back if specific styling per condition is needed per grid cell.
     return html`
-      <div class=${classNames('forecast-row', condition)}>
-        <div class="day">${day}</div>
+      <div class="day">${day}</div>
+      <div class="icon-container">
         <bwc-weather-icon-element
           .useHAWeatherIcons=${this.useHAWeatherIcons}
           .weatherIcon=${condition}
           .iconSize=${ICON_SIZE.REGULAR}
+          .noPadding=${true}
         ></bwc-weather-icon-element>
-        <div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>
-        <div class="rain">${rain === 0 ? 'No Rain' : `${rain}mm`}${rain === 0 ? '' : ` (${rainChance}%)`}</div>
       </div>
+      <div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>
+      <div class="rain">${rain === 0 ? 'No Rain' : `${rain}mm`}${rain === 0 ? '' : ` (${rainChance}%)`}</div>
     `;
   }
 
@@ -103,7 +115,7 @@ export class BwcDailyForecastElement extends LitElement {
     return html`
       <div class="container">
         <div class="title">Daily forecast</div>
-        ${forecastRows}
+        <div class="forecast-grid">${forecastRows}</div>
       </div>
     `;
   }

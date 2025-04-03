@@ -1,7 +1,7 @@
-import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {A_DAY_MODE, DAY_MODE} from '../constants/day-mode.const';
 import {AN_ICON_SIZE, ICON_SIZE} from '../constants/icon-size.const';
 import {A_WEATHER_ICON, WEATHER_ICON} from '../constants/weather-icons.const';
@@ -13,11 +13,19 @@ export class WeatherIconElement extends LitElement {
   @property({type: Boolean}) public useHAWeatherIcons: boolean = false;
   @property({type: String}) public iconSize: AN_ICON_SIZE = ICON_SIZE.REGULAR;
   @property({type: String}) public dayMode: A_DAY_MODE = DAY_MODE.DAY;
+  @property({type: Boolean}) public noPadding: boolean = false;
 
   override render() {
     if (!this.weatherIcon) return nothing;
 
-    return html`<div class=${classNames('weather-icon-element', this.iconSize, this.weatherIcon)}>
+    const classes = {
+      'weather-icon-element': true,
+      [this.iconSize]: true,
+      [this.weatherIcon]: true,
+      'no-padding': this.noPadding,
+    };
+
+    return html`<div class=${classMap(classes)}>
       ${this.useHAWeatherIcons
         ? html`<ha-icon icon="mdi:weather-${this.weatherIcon}"></ha-icon>`
         : html`${unsafeHTML(WEATHER_ICON[this.dayMode][this.weatherIcon])}`}
@@ -41,6 +49,11 @@ export class WeatherIconElement extends LitElement {
 
         svg {
           height: var(--bwc-weather-icon-height);
+          width: var(--bwc-weather-icon-height);
+        }
+
+        &.no-padding {
+          padding: 0;
         }
 
         &.huge {
