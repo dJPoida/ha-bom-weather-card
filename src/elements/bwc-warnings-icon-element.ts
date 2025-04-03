@@ -1,7 +1,7 @@
-import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement} from 'lit';
 import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
 import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {ICON} from '../img/icons/icons';
 import {elementStyles} from '../styles/element.style';
 
@@ -10,11 +10,11 @@ export class WarningsIconElement extends LitElement {
   @property({type: Number}) public value: number | undefined;
 
   override render() {
-    return html`<div
-      class=${classNames('warnings-icon-element', {
-        'has-warnings': this.value && this.value > 0,
-      })}
-    >
+    const classes = {
+      'warnings-icon-element': true,
+      'has-warnings': !!(this.value && this.value > 0),
+    };
+    return html`<div class=${classMap(classes)}>
       <div class="icon-value-wrapper">
         <div class="bwc-icon">${html`${unsafeHTML(ICON.WARNING)}`}</div>
         <div class="value-wrapper">

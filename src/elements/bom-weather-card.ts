@@ -1,7 +1,7 @@
-import classnames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import log from 'loglevel';
 import {version} from '../../package.json';
 import {CONFIG_PROP} from '../constants/config-prop.const';
@@ -210,15 +210,19 @@ export class BomWeatherCard extends LitElement {
       forecast: this._dailyForecastEvent,
     });
 
-    return html`<ha-card
-      class="${classnames({
-        day: this._dayMode,
-        night: !this._dayMode,
-        'dark-mode': this._darkMode,
-        'light-mode': !this._darkMode,
-        [this._weatherClass]: true,
-      })}"
-    >
+    const cardClasses: Record<string, boolean> = {
+      day: this._dayMode,
+      night: !this._dayMode,
+      'dark-mode': this._darkMode,
+      'light-mode': !this._darkMode,
+    };
+
+    // Conditionally add weather class if it exists
+    if (this._weatherClass) {
+      cardClasses[this._weatherClass] = true;
+    }
+
+    return html`<ha-card class=${classMap(cardClasses)}>
       <!-- Card Header -->
       ${this._config.title ? html`<h1 class="card-header">${this._config.title}</h1>` : nothing}
 

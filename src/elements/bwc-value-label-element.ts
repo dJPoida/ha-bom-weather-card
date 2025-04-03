@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {elementStyles} from '../styles/element.style';
@@ -9,7 +8,7 @@ export class ValueLabelElement extends LitElement {
   @property() public label: string | undefined;
 
   override render() {
-    return html`<div class=${classNames('value-label-element')}>
+    return html`<div class="value-label-element">
       ${this.value && html`<span class="value">${this.value}</span>`}
       ${this.label && html`<span class="label">${this.label}</span>`}
     </div>`;

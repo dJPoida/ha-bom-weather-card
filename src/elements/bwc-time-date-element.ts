@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
@@ -21,14 +20,8 @@ export class TimeElement extends LitElement {
 
   _update() {
     if (this.hass) {
-      this._currentTime = getCardEntityValueAsString(
-        this.hass,
-        this.cardTimeEntity
-      );
-      this._currentDate = getCardEntityValueAsString(
-        this.hass,
-        this.cardDateEntity
-      );
+      this._currentTime = getCardEntityValueAsString(this.hass, this.cardTimeEntity);
+      this._currentDate = getCardEntityValueAsString(this.hass, this.cardDateEntity);
     }
   }
 
@@ -52,11 +45,9 @@ export class TimeElement extends LitElement {
   override render() {
     const showDate = this.showDate && this._currentDate;
 
-    return html`<div class=${classNames('time-date-element')}>
+    return html`<div class="time-date-element">
       <span class="time">${this._currentTime}</span>
-      ${showDate
-        ? html`<span class="date">${this._currentDate}</span>`
-        : nothing}
+      ${showDate ? html`<span class="date">${this._currentDate}</span>` : nothing}
     </div>`;
   }
 

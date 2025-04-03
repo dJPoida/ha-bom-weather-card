@@ -1,8 +1,8 @@
-import classNames from 'classnames';
 import {HomeAssistant, LovelaceCardEditor} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing, TemplateResult} from 'lit';
 import {ifDefined} from 'lit-html/directives/if-defined.js';
 import {customElement, property, state} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import log from 'loglevel';
 import {A_CONFIG_PROP, CONFIG_PROP} from '../constants/config-prop.const';
 import {DEFAULT_CARD_CONFIG} from '../constants/default-config.const';
@@ -166,11 +166,15 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     required = false,
     className: string | undefined = undefined
   ): TemplateResult {
+    const classes: Record<string, boolean> = {item: true};
+    if (className) {
+      classes[className] = true;
+    }
     return html`
       <bwc-weather-device-picker-element
         id="${name}"
         .hass=${this.hass}
-        class=${classNames('item', className)}
+        class=${classMap(classes)}
         .label="${label} (${required ? this.localize('editor.required') : this.localize('editor.optional')})"
         .value=${typeof this._config[name] === 'string' ? this._config[name] : ''}
         @value-changed=${this._handleFieldChange}
@@ -186,11 +190,15 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     helper: string | undefined = undefined,
     className: string | undefined = undefined
   ): TemplateResult {
+    const classes: Record<string, boolean> = {item: true};
+    if (className) {
+      classes[className] = true;
+    }
     return html`
       <ha-entity-picker
         id="${name}"
         .hass=${this.hass}
-        class=${classNames('item', className)}
+        class=${classMap(classes)}
         .label="${label} (${required ? this.localize('editor.required') : this.localize('editor.optional')})"
         .value=${this._config[name] ?? ''}
         @value-changed=${this._handleFieldChange}
@@ -209,11 +217,15 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     required = false,
     className: string | undefined = undefined
   ): TemplateResult {
+    const classes: Record<string, boolean> = {item: true};
+    if (className) {
+      classes[className] = true;
+    }
     return html`
       <ha-textfield
         id=${name}
         type="string"
-        class=${classNames('item', className)}
+        class=${classMap(classes)}
         .value=${this._config[name] ?? ''}
         .label="${label} (${required ? this.localize('editor.required') : this.localize('editor.optional')})"
         name=${name}
@@ -233,7 +245,11 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     minValue: number | undefined = undefined,
     maxValue: number | undefined = undefined
   ): TemplateResult {
-    return html`<div class=${classNames('item', className)}>
+    const classes: Record<string, boolean> = {item: true};
+    if (className) {
+      classes[className] = true;
+    }
+    return html`<div class=${classMap(classes)}>
       <span class="label">${label}</span
       ><ha-slider
         id=${name}
@@ -248,8 +264,8 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
         name=${name}
         @change=${this._handleFieldChange}
         .required=${required}
-      ></ha-slider>
-      <span class="value">${this._config[name]}</span>
+      >
+      </ha-slider>
     </div>`;
   }
 
@@ -258,9 +274,13 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     label: string,
     className: string | undefined = undefined
   ): TemplateResult {
+    const classes: Record<string, boolean> = {item: true};
+    if (className) {
+      classes[className] = true;
+    }
     return html`
-      <ha-formfield .label=${label} class=${classNames('item', className)}>
-        <ha-switch id=${name} .checked=${this._config[name] ?? false} @change=${this._handleFieldChange}></ha-switch>
+      <ha-formfield class=${classMap(classes)} .label="${label}">
+        <ha-switch id=${name} .checked=${this._config[name]} @change=${this._handleFieldChange}> </ha-switch>
       </ha-formfield>
     `;
   }

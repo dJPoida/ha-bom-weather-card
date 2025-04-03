@@ -1,6 +1,6 @@
-import classNames from 'classnames';
 import {css, CSSResultGroup, html, LitElement, nothing} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {elementStyles} from '../styles/element.style';
 import {Localizer} from '../types/localizer.type';
 
@@ -15,28 +15,23 @@ export class temperatureElement extends LitElement {
   @property() public localize!: Localizer;
 
   override render() {
-    return html`<div
-      class=${classNames('temperature-element', {large: this.isLarge})}
-    >
-      <span class="number"
-        >${this.value !== undefined
-          ? this.value.toFixed(this.decimalPlaces)
-          : '-'}&deg;</span
-      >
+    const classes = {
+      'temperature-element': true,
+      large: this.isLarge,
+    };
+
+    return html`<div class=${classMap(classes)}>
+      <span class="number">${this.value !== undefined ? this.value.toFixed(this.decimalPlaces) : '-'}&deg;</span>
       ${this.feelsLikeTemperature !== undefined
         ? html`
             <span class="feels-like"
               >${this.localize('card.feelsLike')}&nbsp;<strong
-                >${this.feelsLikeTemperature.toFixed(
-                  this.decimalPlaces
-                )}&deg;</strong
+                >${this.feelsLikeTemperature.toFixed(this.decimalPlaces)}&deg;</strong
               ></span
             >
           `
         : nothing}
-      ${this.label !== undefined
-        ? html`<span class="label">${this.label}</span>`
-        : nothing}
+      ${this.label !== undefined ? html`<span class="label">${this.label}</span>` : nothing}
     </div>`;
   }
 
