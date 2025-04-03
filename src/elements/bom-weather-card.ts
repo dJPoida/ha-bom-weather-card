@@ -24,7 +24,6 @@ import {WeatherSummaryData} from '../types/weather-summary-data.type';
 // Estimated component heights (adjust as needed)
 const ESTIMATED_SUMMARY_HEIGHT = 12; // em
 const ESTIMATED_TITLE_HEIGHT = 3; // em (approx header font size + padding)
-const ESTIMATED_FORECAST_HEIGHT = 18; // em (based on daily forecast calc: title + 4*3.5em rows + padding)
 const ESTIMATED_BASE_PADDING_HEIGHT = 2; // em (e.g., version number padding)
 
 @customElement('bom-weather-card')
@@ -98,21 +97,11 @@ export class BomWeatherCard extends LitElement {
 
   private _calculateMinHeight(): string {
     let totalHeight = 0;
-
-    // Always include summary height (it's always shown)
     totalHeight += ESTIMATED_SUMMARY_HEIGHT;
-
     if (this._config.title) {
       totalHeight += ESTIMATED_TITLE_HEIGHT;
     }
-
-    if (this._config[CONFIG_PROP.SHOW_DAILY_FORECAST]) {
-      totalHeight += ESTIMATED_FORECAST_HEIGHT;
-    }
-
-    // Base padding/debug info
     totalHeight += ESTIMATED_BASE_PADDING_HEIGHT;
-
     log.debug(`Calculated min-height: ${totalHeight}em`);
     return `${totalHeight}em`;
   }
@@ -286,6 +275,7 @@ export class BomWeatherCard extends LitElement {
             .forecastEntityId=${this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id}
             .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] ?? false}
             .showTitle=${this._config[CONFIG_PROP.SHOW_DAILY_FORECAST_TITLE] ?? true}
+            .numberOfDays=${this._config[CONFIG_PROP.DAILY_FORECAST_NUMBER_OF_DAYS] ?? 5}
           ></bwc-daily-forecast-element>`
         : nothing}
 

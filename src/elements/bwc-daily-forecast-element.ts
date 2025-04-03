@@ -11,6 +11,7 @@ export class BwcDailyForecastElement extends LitElement {
   @property({type: String}) public forecastEntityId?: string;
   @property({type: Boolean}) useHAWeatherIcons = false;
   @property({type: Boolean}) showTitle = true;
+  @property({type: Number}) numberOfDays = 5; // Default number of days
 
   @state() private _forecastSubscribed?: Promise<() => void>;
   @state() private _forecastEvent?: ForecastEvent;
@@ -18,27 +19,28 @@ export class BwcDailyForecastElement extends LitElement {
   static override styles: CSSResultGroup = css`
     :host {
       color: var(--bwc-text-color);
-      /* Define estimated heights/counts */
-      --bwc-daily-forecast-row-estimated-height: 3.5em;
-      --bwc-daily-forecast-expected-rows: 4; /* Typical number of future days */
+      /* Removed estimated row count/height vars for now */
     }
 
     .container {
       display: flex;
       flex-direction: column;
       padding: var(--bwc-global-padding);
-      /* Calculate min-height based on estimates */
+      /* Simpler min-height based on title+padding, content determines rest */
       min-height: calc(
-        (var(--bwc-section-header-font-size) * 1.2) /* Title height + margin approx */ + var(--bwc-global-padding)
-          /* Space below title */ +
-          (var(--bwc-daily-forecast-expected-rows) * var(--bwc-daily-forecast-row-estimated-height)) +
-          var(--bwc-global-padding) /* Bottom padding */
+        (var(--bwc-section-header-font-size) * 1.2) /* Title height approx */ + var(--bwc-global-padding)
+          /* Space below title */ + var(--bwc-global-padding) /* Bottom padding */
       );
     }
 
-    .title {
-      font-size: var(--bwc-section-header-font-size);
+    .title:not(:empty) {
+      /* Only add margin if title is shown */
       margin-bottom: var(--bwc-global-padding);
+    }
+
+    /* Remove min-height if title is hidden */
+    :host([notitle]) .container {
+      min-height: 0; /* Or just padding calc if preferred */
     }
 
     .loading, /* Style for loading message */
@@ -188,6 +190,9 @@ export class BwcDailyForecastElement extends LitElement {
   }
 
   override render(): TemplateResult {
+    // Add host attribute for styling when title is hidden
+    this.toggleAttribute('notitle', !this.showTitle);
+
     // Render loading if forecast event hasn't arrived yet
     if (!this._forecastEvent || !this._forecastEvent.forecast) {
       return html`
@@ -208,6 +213,7 @@ export class BwcDailyForecastElement extends LitElement {
         forecastDate.setHours(0, 0, 0, 0);
         return forecastDate.getTime() !== today.getTime(); // Keep only future days
       })
+      .slice(0, this.numberOfDays) // Limit number of days shown
       .map((dayForecast: ForecastAttribute) =>
         this._renderForecastRow(
           new Date(dayForecast.datetime).toLocaleDateString('en-US', {weekday: 'long'}),
