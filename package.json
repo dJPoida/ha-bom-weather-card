@@ -1,6 +1,6 @@
 {
   "name": "@djpoida/ha-bom-weather-card",
-  "version": "0.0.1533",
+  "version": "0.0.1535",
   "author": "Peter Eldred",
   "license": "MIT",
   "description": "A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app",
@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "build": "rollup -c",
-    "serve": "rollup -c --watch",
+    "dev": "rollup -c --watch",
     "hass:start": "docker-compose up -d",
     "hass:restart": "docker-compose restart",
     "hass:stop": "docker-compose down",

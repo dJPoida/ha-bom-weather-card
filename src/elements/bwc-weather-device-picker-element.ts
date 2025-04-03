@@ -23,9 +23,7 @@ export class WeatherDevicePickerElement extends LitElement {
   }
 
   // Override the updated method
-  protected override updated(
-    changedProperties: Map<string | number | symbol, unknown>
-  ): void {
+  protected override updated(changedProperties: Map<string | number | symbol, unknown>): void {
     if (changedProperties.has('hass')) {
       this._fetchWeatherDevices();
     }
