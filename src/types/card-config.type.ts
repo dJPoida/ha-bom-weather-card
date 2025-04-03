@@ -46,5 +46,6 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.SHOW_HOURLY_FORECAST]: boolean | undefined;
 
   [CONFIG_PROP.SHOW_DAILY_FORECAST]: boolean | undefined;
+  [CONFIG_PROP.SHOW_DAILY_FORECAST_TITLE]?: boolean;
   [CONFIG_PROP.DAILY_FORECAST_NUMBER_OF_DAYS]: number | undefined;
 };

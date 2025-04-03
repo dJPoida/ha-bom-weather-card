@@ -2,6 +2,7 @@ import {HomeAssistant} from 'custom-card-helpers';
 import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import log from 'loglevel';
 import {version} from '../../package.json';
 import {CONFIG_PROP} from '../constants/config-prop.const';
@@ -12,7 +13,6 @@ import {A_WEATHER_CONDITION} from '../constants/weather-conditions.const';
 import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
 import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
 import {isDayMode} from '../helpers/is-day-mode.helper';
-import {ForecastEvent, subscribeForecast} from '../lib/weather';
 import {getLocalizer} from '../localize/localize';
 import {containerStyles} from '../styles/container.style';
 import {cssVariables} from '../styles/css-variables.style';
@@ -20,6 +20,12 @@ import {globalStyles} from '../styles/global.style';
 import {CardConfig} from '../types/card-config.type';
 import {CardEntities} from '../types/card-entities.type';
 import {WeatherSummaryData} from '../types/weather-summary-data.type';
+
+// Estimated component heights (adjust as needed)
+const ESTIMATED_SUMMARY_HEIGHT = 12; // em
+const ESTIMATED_TITLE_HEIGHT = 3; // em (approx header font size + padding)
+const ESTIMATED_FORECAST_HEIGHT = 18; // em (based on daily forecast calc: title + 4*3.5em rows + padding)
+const ESTIMATED_BASE_PADDING_HEIGHT = 2; // em (e.g., version number padding)
 
 @customElement('bom-weather-card')
 export class BomWeatherCard extends LitElement {
@@ -34,9 +40,6 @@ export class BomWeatherCard extends LitElement {
 
   @state() _weatherSummaryData: WeatherSummaryData | undefined;
 
-  @state() private _dailyForecastSubscribed?: Promise<() => void>;
-  @state() private _dailyForecastEvent?: ForecastEvent;
-
   private language: A_LANGUAGE = DEFAULT_LANGUAGE;
   private localize = getLocalizer(this.language);
   private _initialized = false;
@@ -49,11 +52,10 @@ export class BomWeatherCard extends LitElement {
       
       ha-card {
         color: var(--bwc-text-color);
-
-        min-height: var(--bwc-min-height);
-
-        /* TODO: make this configurable */
+        /* Use the calculated min-height if available, otherwise fallback */
+        min-height: var(--bwc-card-calculated-min-height, var(--bwc-min-height));
         border: none;
+        overflow: hidden; /* Prevent content spillover during loading */
       }
 
       h1.card-header {
@@ -94,45 +96,25 @@ export class BomWeatherCard extends LitElement {
     log.debug('Weather class recalculated:', this._weatherClass);
   }
 
-  /**
-   * Unsubscribe from Home Assistant forecast events
-   * Typically called when the card is disconnected from the DOM or
-   * when the card is updated with a new config
-   */
-  private _unsubscribeForecastEvents() {
-    if (this._dailyForecastSubscribed) {
-      this._dailyForecastSubscribed.then((unsub) => unsub()).catch(() => {});
-      this._dailyForecastSubscribed = undefined;
+  private _calculateMinHeight(): string {
+    let totalHeight = 0;
+
+    // Always include summary height (it's always shown)
+    totalHeight += ESTIMATED_SUMMARY_HEIGHT;
+
+    if (this._config.title) {
+      totalHeight += ESTIMATED_TITLE_HEIGHT;
     }
 
-    //TODO: _hourlyForecastSubscribed
-  }
-
-  private async _subscribeForecastEvents() {
-    this._unsubscribeForecastEvents();
-
-    if (!this.isConnected || !this._initialized || !this.hass || !this._config) {
-      return;
+    if (this._config[CONFIG_PROP.SHOW_DAILY_FORECAST]) {
+      totalHeight += ESTIMATED_FORECAST_HEIGHT;
     }
 
-    const forecastEntityId = this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id;
+    // Base padding/debug info
+    totalHeight += ESTIMATED_BASE_PADDING_HEIGHT;
 
-    log.debug('_subscribeForecastEvents()', {forecastEntityId});
-
-    if (!forecastEntityId) {
-      log.warn('⚠️ No Forecast Entity specified. Skipping subscription to daily forecast.');
-      return;
-    }
-
-    this._dailyForecastSubscribed = subscribeForecast(
-      this.hass!,
-      forecastEntityId,
-      'daily', //TODO: implement this "daily" | "hourly" | "twice_daily"
-      (event) => {
-        log.debug('Daily Forecast Subscribed.', event);
-        this._dailyForecastEvent = event;
-      }
-    );
+    log.debug(`Calculated min-height: ${totalHeight}em`);
+    return `${totalHeight}em`;
   }
 
   protected override firstUpdated(): void {
@@ -147,36 +129,26 @@ export class BomWeatherCard extends LitElement {
     super.updated(changedProps);
     log.debug('updated():', changedProps);
 
-    // Subscribe to forecast events if not already subscribed
-    if (!this._dailyForecastSubscribed || changedProps.has('_config')) {
-      this._subscribeForecastEvents();
-    }
+    const oldConfig = changedProps.get('_config') as CardConfig | undefined;
+    const entityIdKey = CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID;
 
+    // Original logic for entity calculation on config change (can stay)
     if (changedProps.has('_config')) {
       log.debug('config changed', this._config);
-
-      this._calculateCardEntities();
-    }
-
-    if (changedProps.has('_dailyForecastEvent')) {
-      log.debug('_dailyForecastEvent changed', this._dailyForecastEvent);
+      this._calculateCardEntities(); // Recalculate entities if any config changed
     }
 
     // Update the weather class that is assigned to the card
     if (changedProps.has('_cardEntities')) {
-      this._calculateWeatherClass();
+      // Check if the specific weather entity changed before recalculating class
+      const oldCardEntities = changedProps.get('_cardEntities') as CardEntities | undefined;
+      if (oldCardEntities?.[entityIdKey] !== this._cardEntities[entityIdKey]) {
+        this._calculateWeatherClass();
+      }
     }
 
-    // TODO: ensure the efficiency of this check is maximized
-    // const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
-    // const oldConfig = changedProps.get('_config') as CardConfig | undefined;
-    if (
-      changedProps.has('hass')
-      // !oldHass // ||
-      // (changedProps.has('_config') && !oldConfig) ||
-      // (changedProps.has('hass') && oldHass!.themes !== this.hass.themes) ||
-      // (changedProps.has('_config') && oldConfig!.theme !== this._config.theme)
-    ) {
+    if (changedProps.has('hass')) {
+      // Original hass update logic (can stay)
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this._darkMode = (this.hass.themes as any).darkMode === true;
@@ -191,15 +163,11 @@ export class BomWeatherCard extends LitElement {
   public override connectedCallback() {
     log.debug('✅ connected to DOM');
     super.connectedCallback();
-    if (this.hasUpdated && this._config && this.hass) {
-      this._subscribeForecastEvents();
-    }
   }
 
   public override disconnectedCallback(): void {
     log.debug('❌ disconnected from DOM');
     super.disconnectedCallback();
-    this._unsubscribeForecastEvents();
   }
 
   public override render() {
@@ -207,7 +175,6 @@ export class BomWeatherCard extends LitElement {
       weatherClass: this._weatherClass,
       hass: this.hass,
       config: this._config,
-      forecast: this._dailyForecastEvent,
     });
 
     const cardClasses: Record<string, boolean> = {
@@ -222,7 +189,11 @@ export class BomWeatherCard extends LitElement {
       cardClasses[this._weatherClass] = true;
     }
 
-    return html`<ha-card class=${classMap(cardClasses)}>
+    const cardStyles = {
+      '--bwc-card-calculated-min-height': this._calculateMinHeight(),
+    };
+
+    return html`<ha-card class=${classMap(cardClasses)} style=${styleMap(cardStyles)}>
       <!-- Card Header -->
       ${this._config.title ? html`<h1 class="card-header">${this._config.title}</h1>` : nothing}
 
@@ -239,10 +210,12 @@ export class BomWeatherCard extends LitElement {
       ></bwc-summary-element>
 
       <!-- Daily Forecast -->
-      ${this._dailyForecastEvent
+      ${this._config[CONFIG_PROP.SHOW_DAILY_FORECAST]
         ? html`<bwc-daily-forecast-element
-            .forecastData=${this._dailyForecastEvent}
+            .hass=${this.hass}
+            .forecastEntityId=${this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]?.entity_id}
             .useHAWeatherIcons=${this._config[CONFIG_PROP.USE_HA_WEATHER_ICONS] ?? false}
+            .showTitle=${this._config[CONFIG_PROP.SHOW_DAILY_FORECAST_TITLE] ?? true}
           ></bwc-daily-forecast-element>`
         : nothing}
 

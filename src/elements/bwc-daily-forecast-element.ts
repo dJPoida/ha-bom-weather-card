@@ -1,22 +1,39 @@
-import {css, CSSResultGroup, html, LitElement, TemplateResult} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
+import {HomeAssistant} from 'custom-card-helpers';
+import {css, CSSResultGroup, html, LitElement, nothing, PropertyValues, TemplateResult} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
+import log from 'loglevel';
 import {ICON_SIZE} from '../constants/icon-size.const';
-import {ForecastAttribute, ForecastEvent} from '../lib/weather';
+import {ForecastAttribute, ForecastEvent, subscribeForecast} from '../lib/weather';
 
 @customElement('bwc-daily-forecast-element')
 export class BwcDailyForecastElement extends LitElement {
-  @property({type: Object}) forecastData!: ForecastEvent;
+  @property({attribute: false}) public hass?: HomeAssistant;
+  @property({type: String}) public forecastEntityId?: string;
   @property({type: Boolean}) useHAWeatherIcons = false;
+  @property({type: Boolean}) showTitle = true;
+
+  @state() private _forecastSubscribed?: Promise<() => void>;
+  @state() private _forecastEvent?: ForecastEvent;
 
   static override styles: CSSResultGroup = css`
     :host {
       color: var(--bwc-text-color);
+      /* Define estimated heights/counts */
+      --bwc-daily-forecast-row-estimated-height: 3.5em;
+      --bwc-daily-forecast-expected-rows: 4; /* Typical number of future days */
     }
 
     .container {
       display: flex;
       flex-direction: column;
       padding: var(--bwc-global-padding);
+      /* Calculate min-height based on estimates */
+      min-height: calc(
+        (var(--bwc-section-header-font-size) * 1.2) /* Title height + margin approx */ + var(--bwc-global-padding)
+          /* Space below title */ +
+          (var(--bwc-daily-forecast-expected-rows) * var(--bwc-daily-forecast-row-estimated-height)) +
+          var(--bwc-global-padding) /* Bottom padding */
+      );
     }
 
     .title {
@@ -24,11 +41,18 @@ export class BwcDailyForecastElement extends LitElement {
       margin-bottom: var(--bwc-global-padding);
     }
 
+    .loading, /* Style for loading message */
     .forecast-grid {
       display: grid;
-      grid-template-columns: max-content auto max-content max-content;
+      /* Day(max), Icon(fixed), Temp(max), Rain(max) */
+      grid-template-columns: max-content 3em max-content max-content;
       align-items: center; /* Vertically center items in each cell */
       gap: 0 calc(var(--bwc-global-padding) / 2); /* Add horizontal gap between columns */
+    }
+
+    .loading {
+      display: block; /* Override grid for single message */
+      text-align: center;
     }
 
     /* Apply bottom border to all direct children of the grid except the last set */
@@ -71,6 +95,73 @@ export class BwcDailyForecastElement extends LitElement {
     }
   `;
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // Subscribe on connect if hass and entityId are available
+    if (this.hass && this.forecastEntityId && !this._forecastSubscribed) {
+      this._subscribe();
+    }
+  }
+
+  override disconnectedCallback(): void {
+    this._unsubscribe();
+    super.disconnectedCallback();
+  }
+
+  protected override updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+
+    // Get previous values if they exist
+    const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
+    const oldForecastEntityId = changedProps.get('forecastEntityId') as string | undefined;
+
+    // Unsubscribe if hass or entityId are removed
+    if ((!this.hass || !this.forecastEntityId) && this._forecastSubscribed) {
+      log.debug('Hass or forecastEntityId removed, unsubscribing...');
+      this._unsubscribe();
+      return;
+    }
+
+    // Subscribe if we now have hass and entityId but weren't subscribed (e.g., initial load)
+    if (this.hass && this.forecastEntityId && !this._forecastSubscribed) {
+      log.debug('Hass and forecastEntityId available, subscribing...');
+      this._subscribe();
+      return;
+    }
+
+    // Resubscribe only if the forecastEntityId has actually changed
+    if (
+      this.hass &&
+      this.forecastEntityId &&
+      changedProps.has('forecastEntityId') &&
+      this.forecastEntityId !== oldForecastEntityId
+    ) {
+      log.debug('forecastEntityId changed, resubscribing...');
+      this._unsubscribe();
+      this._subscribe();
+    }
+  }
+
+  private _subscribe(): void {
+    if (!this.hass || !this.forecastEntityId) {
+      return;
+    }
+    log.debug(`Subscribing to daily forecast for ${this.forecastEntityId}`);
+    this._forecastSubscribed = subscribeForecast(this.hass!, this.forecastEntityId, 'daily', (event) => {
+      log.debug('Daily Forecast Received in Element.', event);
+      this._forecastEvent = event;
+    });
+  }
+
+  private _unsubscribe(): void {
+    if (this._forecastSubscribed) {
+      log.debug(`Unsubscribing from daily forecast for ${this.forecastEntityId}`);
+      this._forecastSubscribed.then((unsub) => unsub()).catch(() => {});
+      this._forecastSubscribed = undefined;
+      this._forecastEvent = undefined; // Clear data on unsubscribe
+    }
+  }
+
   private _renderForecastRow(
     day: string,
     low: number | undefined,
@@ -85,10 +176,10 @@ export class BwcDailyForecastElement extends LitElement {
       <div class="day">${day}</div>
       <div class="icon-container">
         <bwc-weather-icon-element
+          .noPadding=${true}
           .useHAWeatherIcons=${this.useHAWeatherIcons}
           .weatherIcon=${condition}
           .iconSize=${ICON_SIZE.REGULAR}
-          .noPadding=${true}
         ></bwc-weather-icon-element>
       </div>
       <div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>
@@ -97,25 +188,43 @@ export class BwcDailyForecastElement extends LitElement {
   }
 
   override render(): TemplateResult {
-    if (!this.forecastData || !this.forecastData.forecast) {
-      return html``;
+    // Render loading if forecast event hasn't arrived yet
+    if (!this._forecastEvent || !this._forecastEvent.forecast) {
+      return html`
+        <div class="container">
+          ${this.showTitle ? html`<div class="title">Daily forecast</div>` : nothing}
+          <div class="loading">Loading Forecast...</div>
+        </div>
+      `;
     }
 
-    const forecastRows = this.forecastData.forecast.map((dayForecast: ForecastAttribute) =>
-      this._renderForecastRow(
-        new Date(dayForecast.datetime).toLocaleDateString('en-US', {weekday: 'long'}),
-        dayForecast.templow ?? undefined,
-        dayForecast.temperature,
-        dayForecast.precipitation ?? 0,
-        dayForecast.precipitation_probability ?? 0,
-        dayForecast.condition ?? ''
-      )
-    );
+    // Get today's date at midnight for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const forecastRows = this._forecastEvent.forecast
+      .filter((dayForecast: ForecastAttribute) => {
+        const forecastDate = new Date(dayForecast.datetime);
+        forecastDate.setHours(0, 0, 0, 0);
+        return forecastDate.getTime() !== today.getTime(); // Keep only future days
+      })
+      .map((dayForecast: ForecastAttribute) =>
+        this._renderForecastRow(
+          new Date(dayForecast.datetime).toLocaleDateString('en-US', {weekday: 'long'}),
+          dayForecast.templow ?? undefined,
+          dayForecast.temperature,
+          dayForecast.precipitation ?? 0,
+          dayForecast.precipitation_probability ?? 0,
+          dayForecast.condition ?? ''
+        )
+      );
 
     return html`
       <div class="container">
-        <div class="title">Daily forecast</div>
-        <div class="forecast-grid">${forecastRows}</div>
+        ${this.showTitle ? html`<div class="title">Daily forecast</div>` : nothing}
+        <div class="forecast-grid">
+          ${forecastRows.length > 0 ? forecastRows : html`<div class="loading">No future forecast available.</div>`}
+        </div>
       </div>
     `;
   }

@@ -27,6 +27,7 @@
     "required": "Required",
     "showCurrentTemperature": "Show Current Temperature",
     "showDailyForecast": "Show Daily Forecast",
+    "showDailyForecastTitle": "Show Daily Forecast Title",
     "showDate": "Show Date",
     "showFeelsLikeTemperature": "Show Feels Like Temperature",
     "showForecastSummary": "Show Forecast Summary",

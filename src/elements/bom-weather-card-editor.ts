@@ -480,19 +480,29 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
       <!-- Show Daily Forecast -->
       ${this.renderBooleanField(CONFIG_PROP.SHOW_DAILY_FORECAST, this.localize('editor.showDailyForecast'))}
 
-      <!-- Number of Days -->
+      <!-- Show Title Option -->
       ${this._config[CONFIG_PROP.SHOW_DAILY_FORECAST]
         ? html`<div class="item-group level-one">
-            ${this.renderNumberSlider(
-              CONFIG_PROP.DAILY_FORECAST_NUMBER_OF_DAYS,
-              this.localize('editor.numberOfDays'),
-              false,
-              undefined,
-              1,
-              7
+            ${this.renderBooleanField(
+              CONFIG_PROP.SHOW_DAILY_FORECAST_TITLE,
+              this.localize('editor.showDailyForecastTitle')
             )}
           </div>`
         : nothing}
+
+      <!-- Number of Days -->
+      <div class="item-group level-one">
+        ${this._config[CONFIG_PROP.SHOW_DAILY_FORECAST]
+          ? html` ${this.renderNumberSlider(
+              CONFIG_PROP.DAILY_FORECAST_NUMBER_OF_DAYS,
+              this.localize('editor.numberOfDays'),
+              false,
+              'item',
+              1,
+              10
+            )}`
+          : nothing}
+      </div>
     </ha-expansion-panel>`;
   }
 
