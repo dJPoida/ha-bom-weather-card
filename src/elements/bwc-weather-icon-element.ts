@@ -50,6 +50,7 @@ export class WeatherIconElement extends LitElement {
         svg {
           height: var(--bwc-weather-icon-height);
           width: var(--bwc-weather-icon-height);
+          filter: drop-shadow(0px 0px 2px rgba(200, 200, 200, 0.75));
         }
 
         &.no-padding {

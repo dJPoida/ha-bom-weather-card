@@ -43,57 +43,53 @@ export class BwcDailyForecastElement extends LitElement {
       min-height: 0; /* Or just padding calc if preferred */
     }
 
-    .loading, /* Style for loading message */
+    .loading {
+      display: block;
+      text-align: center;
+      padding: var(--bwc-global-padding) 0; /* Add some padding */
+    }
+
     .forecast-grid {
       display: grid;
-      /* Day(max), Icon(fixed), Temp(max), Rain(max) */
-      grid-template-columns: max-content 3em max-content max-content;
-      align-items: center; /* Vertically center items in each cell */
-      gap: 0 calc(var(--bwc-global-padding) / 2); /* Add horizontal gap between columns */
+      /* Day(max), Icon(fixed), Temp(fill), Rain(max) */
+      grid-template-columns: max-content auto auto max-content;
+      align-items: center;
+      gap: 0 calc(var(--bwc-global-padding) / 2);
     }
 
-    .loading {
-      display: block; /* Override grid for single message */
-      text-align: center;
-    }
-
-    /* Apply bottom border to all direct children of the grid except the last set */
-    /* The number of children per row is 4 (day, icon, temp, rain) */
-    .forecast-grid > *:not(:nth-last-child(-n + 4)) {
+    /* Style for the new separator element */
+    .forecast-separator {
+      grid-column: 1 / -1; /* Span all columns */
       border-bottom: 1px solid var(--divider-color);
-      padding-bottom: calc(var(--bwc-global-padding) / 2);
-      margin-bottom: calc(var(--bwc-global-padding) / 2);
+      height: 1px;
+      margin: calc(var(--bwc-global-padding) / 2) 0; /* Vertical spacing */
     }
 
     .day {
       font-weight: bold;
       text-align: left;
       font-size: var(--bwc-daily-forecast-day-font-size);
-      /* Consistent padding for vertical alignment */
-      padding: calc(var(--bwc-global-padding) / 2) 0;
+      padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
     }
 
     .icon-container {
       /* Container for centering icon */
       display: flex;
-      justify-content: flex-start; /* Align icon to the start */
+      justify-content: flex-end;
       align-items: center;
-      /* Consistent padding for vertical alignment */
-      padding: calc(var(--bwc-global-padding) / 2) 0;
+      padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
     }
 
     .temperature {
-      text-align: right;
+      text-align: left;
       font-size: var(--bwc-daily-forecast-temp-font-size);
-      /* Consistent padding for vertical alignment */
-      padding: calc(var(--bwc-global-padding) / 2) 0;
+      padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
     }
 
     .rain {
       text-align: right;
       font-size: var(--bwc-daily-forecast-rain-font-size);
-      /* Consistent padding for vertical alignment */
-      padding: calc(var(--bwc-global-padding) / 2) 0;
+      padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
     }
   `;
 
@@ -171,22 +167,20 @@ export class BwcDailyForecastElement extends LitElement {
     rain: number,
     rainChance: number,
     condition: string
-  ): TemplateResult {
-    // Each element is now a direct child of the grid container.
-    // The classNames for condition might be added back if specific styling per condition is needed per grid cell.
-    return html`
-      <div class="day">${day}</div>
-      <div class="icon-container">
+  ): TemplateResult[] {
+    return [
+      html`<div class="day">${day}</div>`,
+      html`<div class="icon-container">
         <bwc-weather-icon-element
           .noPadding=${true}
           .useHAWeatherIcons=${this.useHAWeatherIcons}
           .weatherIcon=${condition}
           .iconSize=${ICON_SIZE.REGULAR}
         ></bwc-weather-icon-element>
-      </div>
-      <div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>
-      <div class="rain">${rain === 0 ? 'No Rain' : `${rain}mm`}${rain === 0 ? '' : ` (${rainChance}%)`}</div>
-    `;
+      </div>`,
+      html`<div class="temperature">${typeof low === 'number' ? `${low}° - ` : ''}${high}°</div>`,
+      html`<div class="rain">${rain === 0 ? 'No Rain' : `${rain}mm`}${rain === 0 ? '' : ` (${rainChance}%)`}</div>`,
+    ];
   }
 
   override render(): TemplateResult {
@@ -207,15 +201,20 @@ export class BwcDailyForecastElement extends LitElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const forecastRows = this._forecastEvent.forecast
+    // Process forecast data
+    const futureForecasts = this._forecastEvent.forecast
       .filter((dayForecast: ForecastAttribute) => {
         const forecastDate = new Date(dayForecast.datetime);
         forecastDate.setHours(0, 0, 0, 0);
         return forecastDate.getTime() !== today.getTime(); // Keep only future days
       })
-      .slice(0, this.numberOfDays) // Limit number of days shown
-      .map((dayForecast: ForecastAttribute) =>
-        this._renderForecastRow(
+      .slice(0, this.numberOfDays); // Limit number of days shown
+
+    // Generate grid items including separators
+    const gridItems: TemplateResult[] = [];
+    futureForecasts.forEach((dayForecast, index) => {
+      gridItems.push(
+        ...this._renderForecastRow(
           new Date(dayForecast.datetime).toLocaleDateString('en-US', {weekday: 'long'}),
           dayForecast.templow ?? undefined,
           dayForecast.temperature,
@@ -224,12 +223,17 @@ export class BwcDailyForecastElement extends LitElement {
           dayForecast.condition ?? ''
         )
       );
+      // Add separator after each row except the last one
+      if (index < futureForecasts.length - 1) {
+        gridItems.push(html`<div class="forecast-separator"></div>`);
+      }
+    });
 
     return html`
       <div class="container">
         ${this.showTitle ? html`<div class="title">Daily forecast</div>` : nothing}
         <div class="forecast-grid">
-          ${forecastRows.length > 0 ? forecastRows : html`<div class="loading">No future forecast available.</div>`}
+          ${gridItems.length > 0 ? gridItems : html`<div class="loading">No future forecast available.</div>`}
         </div>
       </div>
     `;
