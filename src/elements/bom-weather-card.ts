@@ -117,6 +117,77 @@ export class BomWeatherCard extends LitElement {
     return `${totalHeight}em`;
   }
 
+  protected override shouldUpdate(changedProperties: PropertyValues): boolean {
+    // Allow update if non-hass properties changed
+    let hasNonHassChanges = false;
+    changedProperties.forEach((_, key) => {
+      if (key !== 'hass') {
+        hasNonHassChanges = true;
+      }
+    });
+    if (hasNonHassChanges) {
+      log.debug('shouldUpdate: true (non-hass property changed)');
+      return true;
+    }
+
+    // If only 'hass' changed, perform a deeper comparison
+    if (changedProperties.has('hass')) {
+      const oldHass = changedProperties.get('hass') as HomeAssistant | undefined;
+      // On first load, oldHass will be undefined, allow update
+      if (!oldHass) {
+        log.debug('shouldUpdate: true (initial hass set)');
+        return true;
+      }
+
+      // 1. Check theme dark mode
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((oldHass.themes as any)?.darkMode !== (this.hass!.themes as any)?.darkMode) {
+        log.debug('shouldUpdate: true (darkMode changed)');
+        return true;
+      }
+
+      // 2. Check locale language
+      if (oldHass.locale?.language !== this.hass!.locale?.language) {
+        log.debug('shouldUpdate: true (locale changed)');
+        return true;
+      }
+
+      // 3. Check states of entities used by this card
+      const relevantEntityIds = new Set<string>();
+      // Add entities explicitly set in config ending with _entity_id
+      for (const key in this._config) {
+        if (key.endsWith('_entity_id')) {
+          const entityId = this._config[key as keyof CardConfig];
+          if (typeof entityId === 'string' && entityId.includes('.')) {
+            relevantEntityIds.add(entityId);
+          }
+        }
+      }
+      // Also check the main weather entity
+      const weatherEntity = this._config[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID];
+      if (typeof weatherEntity === 'string' && weatherEntity.includes('.')) {
+        relevantEntityIds.add(weatherEntity);
+      }
+      // Ensure sun.sun is included for day/night check
+      relevantEntityIds.add('sun.sun');
+
+      for (const entityId of relevantEntityIds) {
+        if (oldHass.states[entityId] !== this.hass!.states[entityId]) {
+          log.debug(`shouldUpdate: true (state changed for ${entityId})`);
+          return true;
+        }
+      }
+
+      // If none of the relevant parts changed, skip the update
+      log.debug('shouldUpdate: false (only non-relevant hass changes detected)');
+      return false;
+    }
+
+    // Default fallback (should not happen if logic is correct)
+    log.debug('shouldUpdate: true (default fallback)');
+    return true;
+  }
+
   protected override firstUpdated(): void {
     const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
 
@@ -140,18 +211,17 @@ export class BomWeatherCard extends LitElement {
 
     // Update the weather class that is assigned to the card
     if (changedProps.has('_cardEntities')) {
-      // Check if the specific weather entity changed before recalculating class
       const oldCardEntities = changedProps.get('_cardEntities') as CardEntities | undefined;
       if (oldCardEntities?.[entityIdKey] !== this._cardEntities[entityIdKey]) {
         this._calculateWeatherClass();
       }
     }
 
+    // This section now only runs when shouldUpdate allows an update involving hass
     if (changedProps.has('hass')) {
-      // Original hass update logic (can stay)
       this._dayMode = isDayMode(this.hass);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this._darkMode = (this.hass.themes as any).darkMode === true;
+      this._darkMode = (this.hass.themes as any)?.darkMode === true;
 
       if ((this.hass.locale?.language as A_LANGUAGE) !== this.language) {
         this.language = this.hass.locale?.language as A_LANGUAGE;
