@@ -41,7 +41,6 @@ export class BomWeatherCard extends LitElement {
 
   private language: A_LANGUAGE = DEFAULT_LANGUAGE;
   private localize = getLocalizer(this.language);
-  private _initialized = false;
 
   static override get styles(): CSSResultGroup {
     return css`
@@ -92,7 +91,7 @@ export class BomWeatherCard extends LitElement {
     ) as A_WEATHER_CONDITION;
     this._weatherClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
 
-    log.debug('Weather class recalculated:', this._weatherClass);
+    log.debug('Weather class recalculated:', {condition: currentCondition, weatherClass: this._weatherClass});
   }
 
   private _calculateMinHeight(): string {
@@ -181,7 +180,7 @@ export class BomWeatherCard extends LitElement {
     const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
 
     Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
-      this._initialized = true;
+      log.debug('Initialization tasks complete.');
     });
   }
 
@@ -189,7 +188,6 @@ export class BomWeatherCard extends LitElement {
     super.updated(changedProps);
     log.debug('updated():', changedProps);
 
-    const oldConfig = changedProps.get('_config') as CardConfig | undefined;
     const entityIdKey = CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID;
 
     // Original logic for entity calculation on config change (can stay)

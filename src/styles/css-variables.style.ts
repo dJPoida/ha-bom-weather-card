@@ -15,6 +15,8 @@ export const cssVariables = css`
     --bwc-background-color-day-end: #c4e1ff;
     --bwc-background-color-night-start: #001d3b;
     --bwc-background-color-night-end: #013565;
+    --bwc-background-color-day-cloudy-start: #e8eaeb;
+    --bwc-background-color-day-cloudy-end: #e8eaeb;
     --bwc-background-color-day-stormy-start: #90959d;
     --bwc-background-color-day-stormy-end: #acb5bc;
     --bwc-time-date-time-font-size: var(--bwc-large-font-size);

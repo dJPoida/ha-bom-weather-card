@@ -6,7 +6,7 @@ export const WEATHER_CONDITION_CLASSES: Record<string, string> = {
   [WEATHER_CONDITION.PARTLY_CLOUDY]: 'partially-cloudy',
   [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy night',
   [WEATHER_CONDITION.MOSTLY_SUNNY]: 'partially-cloudy',
-  [WEATHER_CONDITION.CLOUDY]: 'partially-cloudy', // TODO: classes for weather condition CLOUDY
+  [WEATHER_CONDITION.CLOUDY]: 'cloudy',
   [WEATHER_CONDITION.LIGHTNING]: 'stormy',
   [WEATHER_CONDITION.LIGHTNING_RAINY]: 'stormy',
   [WEATHER_CONDITION.POURING]: 'clear', // TODO: classes for weather condition POURING

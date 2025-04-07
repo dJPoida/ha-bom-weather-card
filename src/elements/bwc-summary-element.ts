@@ -35,12 +35,10 @@ export class SummaryElement extends LitElement {
       ${containerStyles}
 
       .summary {
-        /* TODO: implement the remainder of the condition backgrounds */
         --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
 
         display: block;
 
-        /* TODO: make this configurable */
         background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
           var(--background-url);
         background-position: center;
@@ -72,6 +70,14 @@ export class SummaryElement extends LitElement {
           &.night {
             color: var(--text-primary-color);
           }
+        }
+
+        /* Cloudy (TODO: dark-mode background) */
+        &.cloudy,
+        &.dark-mode.cloudy {
+          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/cloudy.png`)});
+          --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
+          --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
         }
 
         /* Stormy (same in dark mode) */

@@ -84,12 +84,14 @@ export class BwcDailyForecastElement extends LitElement {
       text-align: left;
       font-size: var(--bwc-daily-forecast-temp-font-size);
       padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
+      white-space: nowrap;
     }
 
     .rain {
       text-align: right;
       font-size: var(--bwc-daily-forecast-rain-font-size);
       padding: calc(var(--bwc-global-padding) / 2) 0; /* Restore padding */
+      white-space: break-spaces;
     }
   `;
 
@@ -110,7 +112,6 @@ export class BwcDailyForecastElement extends LitElement {
     super.updated(changedProps);
 
     // Get previous values if they exist
-    const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
     const oldForecastEntityId = changedProps.get('forecastEntityId') as string | undefined;
 
     // Unsubscribe if hass or entityId are removed
