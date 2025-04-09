@@ -7,17 +7,17 @@ A [Home Assistant](https://www.home-assistant.io) card designed to display weath
 ## Features
 
 - All elements have configurable visibility and entity source selection
-- Entities are automatically inferred from the selected weather device to simplify configuration
+- To simplify the configuration of the card, most entities are automatically inferred from the selected weather device
 - Responds to the `sun.sun` entity for Day / Night mode
-- Responds to the current theme to adjust for dark/light mode theme settings
-- Shows different "now / then" values depending on the time of day (this is assumed behavior derived from observing the app and not verified as exactly how the BOM app behaves):
+- Responds to dark/light mode themes
+- Shows different "now / then" temperature min and max values depending on the time of day (this is assumed behavior derived from observing the app and not verified as exactly how the BOM app behaves):
   - 4am -> 12pm (Morning): Min / Max (Last night's min, Today's Max)
   - 12pm -> 6pm (Afternoon): Max / Overnight Min (Today's Max, Tonight's Min)
   - 6pm -> 4am (Evening): Overnight Min / Tomorrow's Max (Tonight's Min, Tomorrow's Max)
 
 ## Weather Providers
 
-This card works best when paired with [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) as a Home Assistant weather provider, but should work with other providers if they follow consistent weather entity naming.
+This card works best when paired with [Bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) as a Home Assistant weather provider, but should work fine with other weather providers.
 
 ## Date & Time Sensors
 
@@ -55,11 +55,7 @@ npm run serve
 
 ## Accessing the Local Dev Site
 
-Once the docker container is running and the rollup server has built and is serving the code, you can access the local Home Assistant server on [http://localhost:8123](http://localhost:8123) and test the bom-weather-card on the [Test Dashboard](http://localhost:8123/test-dashboard).
-
-The build `bom-weather-card.js` will be served by rollup on [http://localhost:4000] and loaded dynamically into Home Assistant.
-
-To preview your changes in realtime, change the code and refresh the browser.
+You can access the local Home Assistant server on [http://localhost:8123](http://localhost:8123). You will need to run through an initial setup in order to access the Home Assistant dashboard.
 
 ## Initial Setup of the Home Assistant Docker container
 
@@ -76,7 +72,7 @@ The first time you start the container using `npm run hass:start` and browse to 
 
 Because the Home Assistant is [installed in a Docker Container and not as a Supervised instance](https://www.home-assistant.io/installation/#advanced-installation-methods), many of the configuration features like addons are not available. To access these other features you will need to install and run Home Assistant differently.
 
-You can install all of the below integrations by using the command `npm run hass:install_integrations` or follow each of the installation steps below.
+You can install all of the below integrations in a single step by using the command `npm run hass:install_integrations` or follow each of the installation steps below.
 
 **Note:** configuration of each individual integration will still be required even if all integrations are installed at the same time
 
@@ -117,6 +113,16 @@ The [Browser Mod integration](https://github.com/thomasloven/hass-browser_mod) a
 6. Search for **Browser Mod** and install it
 7. Restart Home Assistant (or the docker container via `npm run hass:restart`)
 8. Register your browser via http://localhost:8123/browser-mod (Recommended use the browser id `test_browser`)
+
+## Viewing the BOM Weather Card
+
+You can test the bom-weather-card on the [Test Dashboard](http://localhost:8123/test-dashboard).
+
+The build `bom-weather-card.js` will be served by rollup on [http://localhost:4000] and loaded dynamically into Home Assistant.
+
+There is no HMR (hot media reloading), to preview your changes in realtime you will need to refresh the browser manually.
+
+The test dashboard is really just a convenience and an example. It **can't be changed using the HA editor** because it's defined in YAML, so it is best to copy the contents to another dashboard where it can be configured and tested properly.
 
 ## Log Verbosity
 
