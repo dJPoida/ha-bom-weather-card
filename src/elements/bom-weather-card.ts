@@ -12,8 +12,8 @@ import {WEATHER_CONDITION_CLASSES} from '../constants/weather-condition-classes.
 import {A_WEATHER_CONDITION} from '../constants/weather-conditions.const';
 import {calculateCardEntities} from '../helpers/calculate-card-entities.helper';
 import {getCardEntityValueAsString} from '../helpers/get-card-entity-value-as-string';
-import {isDayMode} from '../helpers/is-day-mode.helper';
 import {getLocalizer} from '../localize/localize';
+import {CardState} from '../state/card-state';
 import {containerStyles} from '../styles/container.style';
 import {cssVariables} from '../styles/css-variables.style';
 import {globalStyles} from '../styles/global.style';
@@ -33,14 +33,13 @@ export class BomWeatherCard extends LitElement {
   @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
   @state() _cardEntities: CardEntities = {} as CardEntities;
 
-  @state() _dayMode: boolean = true;
-  @state() _darkMode: boolean = false;
   @state() _weatherClass: string = '';
 
   @state() _weatherSummaryData: WeatherSummaryData | undefined;
 
   private language: A_LANGUAGE = DEFAULT_LANGUAGE;
   private localize = getLocalizer(this.language);
+  private _cardState = new CardState();
 
   static override get styles(): CSSResultGroup {
     return css`
@@ -118,19 +117,31 @@ export class BomWeatherCard extends LitElement {
       return true;
     }
 
+    log.debug('[BomWeatherCard] shouldUpdate evaluating hass change');
     // If only 'hass' changed, perform a deeper comparison
     if (changedProperties.has('hass')) {
+      // === Update CardState first ===
+      const cardStateChanged = this._cardState.updateHass(this.hass);
+      // ==============================
+
       const oldHass = changedProperties.get('hass') as HomeAssistant | undefined;
+      log.debug('[BomWeatherCard] shouldUpdate: hass changed', {hasOldHass: !!oldHass});
+
       // On first load, oldHass will be undefined, allow update
       if (!oldHass) {
         log.debug('shouldUpdate: true (initial hass set)');
+        // No need to call updateHass again, already called above
+        // this._cardState.updateHass(this.hass);
         return true;
       }
 
-      // 1. Check theme dark mode
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((oldHass.themes as any)?.darkMode !== (this.hass!.themes as any)?.darkMode) {
-        log.debug('shouldUpdate: true (darkMode changed)');
+      // Pass hass to CardState - No longer needed here, handled in updateHass call
+      // this._cardState.hass = this.hass;
+
+      // 1. Check if CardState detected relevant changes (result captured above)
+      // const cardStateChanged = this._cardState.updateHass(this.hass);
+      if (cardStateChanged) {
+        log.debug('shouldUpdate: true (CardState detected changes)');
         return true;
       }
 
@@ -156,8 +167,8 @@ export class BomWeatherCard extends LitElement {
       if (typeof weatherEntity === 'string' && weatherEntity.includes('.')) {
         relevantEntityIds.add(weatherEntity);
       }
-      // Ensure sun.sun is included for day/night check
-      relevantEntityIds.add('sun.sun');
+      // Ensure sun.sun is included for day/night check - Handled by CardState
+      // relevantEntityIds.add('sun.sun');
 
       for (const entityId of relevantEntityIds) {
         if (oldHass.states[entityId] !== this.hass!.states[entityId]) {
@@ -176,7 +187,16 @@ export class BomWeatherCard extends LitElement {
     return true;
   }
 
-  protected override firstUpdated(): void {
+  protected override firstUpdated(changedProperties: PropertyValues): void {
+    super.firstUpdated(changedProperties); // Ensure super is called if needed
+
+    // Try to initialize CardState with the initial hass object
+    if (this.hass) {
+      log.debug('[BomWeatherCard] firstUpdated: Initializing CardState with hass.');
+      this._cardState.updateHass(this.hass);
+      this.requestUpdate(); // Ensure render is re-evaluated now that CardState has hass
+    }
+
     const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
 
     Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
@@ -189,6 +209,11 @@ export class BomWeatherCard extends LitElement {
     log.debug('updated():', changedProps);
 
     const entityIdKey = CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID;
+
+    // Update CardState hass if hass changed - No longer needed, hass passed via shouldUpdate/updateHass
+    // if (changedProps.has('hass')) {
+    //   this._cardState.hass = this.hass;
+    // }
 
     // Original logic for entity calculation on config change (can stay)
     if (changedProps.has('_config')) {
@@ -206,10 +231,6 @@ export class BomWeatherCard extends LitElement {
 
     // This section now only runs when shouldUpdate allows an update involving hass
     if (changedProps.has('hass')) {
-      this._dayMode = isDayMode(this.hass);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this._darkMode = (this.hass.themes as any)?.darkMode === true;
-
       if ((this.hass.locale?.language as A_LANGUAGE) !== this.language) {
         this.language = this.hass.locale?.language as A_LANGUAGE;
         this.localize = getLocalizer(this.language);
@@ -228,17 +249,27 @@ export class BomWeatherCard extends LitElement {
   }
 
   public override render() {
-    log.debug('🖼️ Rendering card with state:', {
+    log.debug('🖼️ [BomWeatherCard] Rendering card...');
+
+    // Don't render until CardState has received hass
+    if (!this._cardState.hasHass) {
+      log.debug('[BomWeatherCard] Skipping render: CardState has no hass yet.');
+      return nothing;
+    }
+
+    log.debug('[BomWeatherCard] State for render:', {
+      darkMode: this._cardState.darkMode,
+      dayMode: this._cardState.dayMode,
       weatherClass: this._weatherClass,
       hass: this.hass,
       config: this._config,
     });
 
     const cardClasses: Record<string, boolean> = {
-      day: this._dayMode,
-      night: !this._dayMode,
-      'dark-mode': this._darkMode,
-      'light-mode': !this._darkMode,
+      day: this._cardState.dayMode,
+      night: !this._cardState.dayMode,
+      'dark-mode': this._cardState.darkMode,
+      'light-mode': !this._cardState.darkMode,
     };
 
     // Conditionally add weather class if it exists
@@ -260,8 +291,8 @@ export class BomWeatherCard extends LitElement {
         .config=${this._config}
         .cardEntities=${this._cardEntities}
         .localize=${this.localize}
-        .dayMode=${this._dayMode}
-        .darkMode=${this._darkMode}
+        .dayMode=${this._cardState.dayMode}
+        .darkMode=${this._cardState.darkMode}
         .weatherClass=${this._weatherClass}
         .weatherSummaryData=${this._weatherSummaryData}
       ></bwc-summary-element>
