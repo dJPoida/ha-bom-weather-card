@@ -26,6 +26,7 @@ export class BwcDailyForecastElement extends LitElement {
       display: flex;
       flex-direction: column;
       padding: var(--bwc-global-padding);
+      color: var(--bwc-text-color);
       /* Simpler min-height based on title+padding, content determines rest */
       min-height: calc(
         (var(--bwc-section-header-font-size) * 1.2) /* Title height approx */ + var(--bwc-global-padding)

@@ -40,8 +40,6 @@ export const cssVariables = css`
     --bwc-daily-forecast-temp-font-size: var(--bwc-regular-font-size);
     --bwc-daily-forecast-rain-font-size: var(--bwc-regular-font-size);
 
-    /* Conditional Colors based on Day/Night and Dark/Light Theme */
-    /* Light Theme / Day Mode */
     --bwc-text-color: var(--text-primary-color);
     --bwc-text-color-inverted: var(--text-light-primary-color);
 

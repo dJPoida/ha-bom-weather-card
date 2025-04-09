@@ -24,6 +24,7 @@ export const containerStyles = css`
       display: flex;
       align-items: center;
       justify-content: var(--bwc-item-justify-content);
+      color: var(--bwc-text-color);
 
       &.left {
         --bwc-item-justify-content: flex-start;

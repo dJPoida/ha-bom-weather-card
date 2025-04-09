@@ -73,16 +73,14 @@ export class SummaryElement extends LitElement {
         }
 
         /* Cloudy (TODO: dark-mode background) */
-        &.cloudy,
-        &.dark-mode.cloudy {
+        &.cloudy {
           --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/cloudy.png`)});
           --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
           --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
         }
 
         /* Stormy (same in dark mode) */
-        &.stormy,
-        &.dark-mode.stormy {
+        &.stormy {
           --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/stormy.png`)});
           --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
           --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
@@ -222,6 +220,7 @@ export class SummaryElement extends LitElement {
       <!-- Second Row (now/later temps and warnings) -->
       ${showNowLater || showWarningCount
         ? html`<div class="item-container justify-left">
+            <!-- Now Later Now -->
             ${showNowLaterNow
               ? html`<bwc-temperature-element
                   class="item left no-grow"
@@ -236,6 +235,8 @@ export class SummaryElement extends LitElement {
                   )}
                 ></bwc-temperature-element> `
               : nothing}
+
+            <!-- Now Later Later -->
             ${showNowLaterLater
               ? html`<bwc-temperature-element
                   class="item left no-grow"
@@ -250,6 +251,8 @@ export class SummaryElement extends LitElement {
                   )}
                 ></bwc-temperature-element> `
               : nothing}
+
+            <!-- Warning Count -->
             ${showWarningCount
               ? html`<bwc-warnings-icon-element
                   class="item right"
@@ -264,6 +267,7 @@ export class SummaryElement extends LitElement {
 
       <!-- Third and Fourth Row -->
       <div class="item-container column">
+        <!-- Rain Summary -->
         ${showRainSummary
           ? html`<bwc-value-label-element
               class="item"
@@ -271,6 +275,8 @@ export class SummaryElement extends LitElement {
               .label=${rainSummary === '0' ? undefined : this.localize('card.rain')}
             ></bwc-value-label-element> `
           : nothing}
+
+        <!-- Forecast Summary -->
         ${showForecastSummary
           ? html`<bwc-value-label-element
               class="item"

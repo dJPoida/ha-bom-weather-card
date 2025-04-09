@@ -53,6 +53,11 @@ export class BomWeatherCard extends LitElement {
         min-height: var(--bwc-card-calculated-min-height, var(--bwc-min-height));
         border: none;
         overflow: hidden; /* Prevent content spillover during loading */
+
+        &.light-mode {
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
+        }
       }
 
       h1.card-header {

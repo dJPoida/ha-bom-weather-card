@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1696";
+var version = "0.0.1721";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -1096,6 +1096,7 @@ const containerStyles = i$5 `
       display: flex;
       align-items: center;
       justify-content: var(--bwc-item-justify-content);
+      color: var(--bwc-text-color);
 
       &.left {
         --bwc-item-justify-content: flex-start;
@@ -1156,8 +1157,6 @@ const cssVariables = i$5 `
     --bwc-daily-forecast-temp-font-size: var(--bwc-regular-font-size);
     --bwc-daily-forecast-rain-font-size: var(--bwc-regular-font-size);
 
-    /* Conditional Colors based on Day/Night and Dark/Light Theme */
-    /* Light Theme / Day Mode */
     --bwc-text-color: var(--text-primary-color);
     --bwc-text-color-inverted: var(--text-light-primary-color);
 
@@ -1232,6 +1231,11 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         min-height: var(--bwc-card-calculated-min-height, var(--bwc-min-height));
         border: none;
         overflow: hidden; /* Prevent content spillover during loading */
+
+        &.light-mode {
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
+        }
       }
 
       h1.card-header {
@@ -1631,6 +1635,7 @@ BwcDailyForecastElement.styles = i$5 `
       display: flex;
       flex-direction: column;
       padding: var(--bwc-global-padding);
+      color: var(--bwc-text-color);
       /* Simpler min-height based on title+padding, content determines rest */
       min-height: calc(
         (var(--bwc-section-header-font-size) * 1.2) /* Title height approx */ + var(--bwc-global-padding)
@@ -1916,16 +1921,14 @@ let SummaryElement = class SummaryElement extends r$2 {
         }
 
         /* Cloudy (TODO: dark-mode background) */
-        &.cloudy,
-        &.dark-mode.cloudy {
+        &.cloudy {
           --background-url: url(${r$5(`${backgroundsBaseUrl}/cloudy.png`)});
           --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
           --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
         }
 
         /* Stormy (same in dark mode) */
-        &.stormy,
-        &.dark-mode.stormy {
+        &.stormy {
           --background-url: url(${r$5(`${backgroundsBaseUrl}/stormy.png`)});
           --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
           --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
@@ -2003,6 +2006,7 @@ let SummaryElement = class SummaryElement extends r$2 {
       <!-- Second Row (now/later temps and warnings) -->
       ${showNowLater || showWarningCount
             ? x `<div class="item-container justify-left">
+            <!-- Now Later Now -->
             ${showNowLaterNow
                 ? x `<bwc-temperature-element
                   class="item left no-grow"
@@ -2011,6 +2015,8 @@ let SummaryElement = class SummaryElement extends r$2 {
                   .label=${getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.NOW_LATER_NOW_LABEL_ENTITY_ID])}
                 ></bwc-temperature-element> `
                 : E}
+
+            <!-- Now Later Later -->
             ${showNowLaterLater
                 ? x `<bwc-temperature-element
                   class="item left no-grow"
@@ -2019,6 +2025,8 @@ let SummaryElement = class SummaryElement extends r$2 {
                   .label=${getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.NOW_LATER_LATER_LABEL_ENTITY_ID])}
                 ></bwc-temperature-element> `
                 : E}
+
+            <!-- Warning Count -->
             ${showWarningCount
                 ? x `<bwc-warnings-icon-element
                   class="item right"
@@ -2030,6 +2038,7 @@ let SummaryElement = class SummaryElement extends r$2 {
 
       <!-- Third and Fourth Row -->
       <div class="item-container column">
+        <!-- Rain Summary -->
         ${showRainSummary
             ? x `<bwc-value-label-element
               class="item"
@@ -2037,6 +2046,8 @@ let SummaryElement = class SummaryElement extends r$2 {
               .label=${rainSummary === '0' ? undefined : this.localize('card.rain')}
             ></bwc-value-label-element> `
             : E}
+
+        <!-- Forecast Summary -->
         ${showForecastSummary
             ? x `<bwc-value-label-element
               class="item"
