@@ -9,7 +9,7 @@ dist/*
 !.devcontainer/scripts.yaml
 !.devcontainer/scenes.yaml
 !.devcontainer/test-dashboard.yaml
+!.devcontainer/scripts
 !.devcontainer/views
 !.devcontainer/www
-!.devcontainer/scripts
 .devcontainer/www/community/*

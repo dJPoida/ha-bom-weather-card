@@ -55,7 +55,7 @@ npm run serve
 
 ## Accessing the Local Dev Site
 
-Once the docker container is running and the rollup server has built and is serving the code, you can access the Home Assistant server on [http://localhost:8123](http://localhost:8123) and test the bom-weather-card on the [Test Dashboard](http://localhost:8123/test-dashboard).
+Once the docker container is running and the rollup server has built and is serving the code, you can access the local Home Assistant server on [http://localhost:8123](http://localhost:8123) and test the bom-weather-card on the [Test Dashboard](http://localhost:8123/test-dashboard).
 
 The build `bom-weather-card.js` will be served by rollup on [http://localhost:4000] and loaded dynamically into Home Assistant.
 
@@ -101,6 +101,19 @@ The [Home Assistant Community Store (HACS)](https://www.hacs.xyz/) can be added 
 7. Follow through the setup wizard.
 8. Restart Home Assistant (or the docker container via `npm run hass:restart`)
 
+### Browser Mod
+
+The [Browser Mod integration](https://github.com/thomasloven/hass-browser_mod) allows you to control web browsers within Home Assistant. It can be added by following these steps:
+
+1. Ensure Home Assistant is running via `npm run hass:start`
+2. Run `npm run install:browser_mod`
+3. Restart the container `npm run hass:restart`
+4. Browse to **[Settings -> Devices and Services](http://localhost:8123/config/integrations/dashboard)**
+5. Click **"+ Add Integration"**
+6. Search for **Browser Mod** and install it
+7. Restart Home Assistant (or the docker container via `npm run hass:restart`)
+8. Register your browser via http://localhost:8123/browser-mod (Recommended use the browser id `test_browser`)
+
 ## Log Verbosity
 
 This project utilizes the [loglevel](https://www.npmjs.com/package/loglevel) library to assist in filtering the logs. To increase the verbosity, either update the `const logLevel = ` line in [rollup.config.js](./rollup.config.js#L15), or run the following command at runtime in the browser to change it dynamically.
@@ -139,6 +152,9 @@ Install [Bremor's Bureau of Meteorology weather provider](#bremors-bureau-of-met
 
 **`npm run install:hacs`** \
 Install [Home Assistant Community Store (HACS)](#home-assistant-community-store-hacs) into your Home Assistant Docker container
+
+**`npm run install:browser_mod`** \
+Install [Browser Mod](#browser-mod) into your Home Assistant Docker container
 
 ## Troubleshooting
 
