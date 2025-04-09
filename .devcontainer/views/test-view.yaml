@@ -1,13 +1,14 @@
 title: Test View
 icon: mdi:test-tube
+type: panel
 cards:
   - type: horizontal-stack
     cards:
       - type: custom:bom-weather-card
-        sun_entity_id: sensor.test_sun
         show_current_temp: true
         show_feels_like_temp: true
         show_weather_icon: true
+        sun_entity_id: sensor.test_sun
         show_now_later_temps: true
         show_warning_count: true
         show_rain_summary: true
@@ -67,7 +68,7 @@ cards:
                   target: {}
           - type: heading
             icon: mdi:palette
-            heading: Day/Night Control
+            heading: Day/Night Control (using sensor.test_sun)
             heading_style: title
           - type: horizontal-stack
             cards:
@@ -113,4 +114,3 @@ cards:
 
               The **Browser Mod** integration must be installed to enable
               theme switching. Refer to the **README.md**.
-type: panel

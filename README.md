@@ -201,6 +201,7 @@ All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants
 - Current Temp -> `current_temp_entity_id` -> `summary_weather_entity[attribute: temperature]`
 - Feels Like Temp -> `feels_like_temp_entity_id`
 - Weather Icon -> `weather_icon_entity_id` -> `weather.%device_name%`
+- Sun -> `sun_entity_id` -> `sun.sun`
 - Time -> `time_entity_id` -> `sensor.time`
 - Date -> `date_entity_id` -> `sensor.date`
 - Now/Later - Now Temperature -> `now_later_now_temp_entity_id` -> `sensor.%device_name%_now_temp_now`
@@ -227,6 +228,7 @@ All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants
 - Split the README.md into smaller pieces aimed at contextual guidance for installation, development and contribution etc...
 - Find a way to use strict typing for Home Assistant Lit Components and remove the `no-unknown-tag-name` lit-plugin rule.
 - Limit the Entity Picker to only Weather Entities
+- Decouple the hass element from the card and build a state manager to better enable automated testing
 - Time/Date section
   - AM/PM vs 24 Hour time selection
   - Allow date format specification (or use HASS locale by default)

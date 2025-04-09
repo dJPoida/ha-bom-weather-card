@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1721";
+var version = "0.0.1739";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -470,7 +470,6 @@ const CONFIG_PROP = {
     TITLE: 'title',
     WEATHER_DEVICE_ID: 'weather_device_id',
     SUMMARY_WEATHER_ENTITY_ID: 'summary_weather_entity_id',
-    SUN_ENTITY_ID: 'sun_entity_id',
     SHOW_CURRENT_TEMP: 'show_current_temp',
     CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
     SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
@@ -478,6 +477,7 @@ const CONFIG_PROP = {
     SHOW_WEATHER_ICON: 'show_weather_icon',
     WEATHER_ICON_ENTITY_ID: 'weather_icon_entity_id',
     USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
+    SUN_ENTITY_ID: 'sun_entity_id',
     SHOW_TIME: 'show_time',
     TIME_ENTITY_ID: 'time_entity_id',
     SHOW_DATE: 'show_date',
@@ -516,7 +516,6 @@ const DEFAULT_CARD_CONFIG = {
     [CONFIG_PROP.TITLE]: undefined,
     [CONFIG_PROP.WEATHER_DEVICE_ID]: undefined,
     [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: undefined,
-    [CONFIG_PROP.SUN_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
     [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
@@ -524,6 +523,7 @@ const DEFAULT_CARD_CONFIG = {
     [CONFIG_PROP.SHOW_WEATHER_ICON]: true,
     [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: undefined,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
+    [CONFIG_PROP.SUN_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_TIME]: undefined,
     [CONFIG_PROP.TIME_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_DATE]: undefined,
@@ -600,6 +600,7 @@ const CARD_ENTITIES = [
     CONFIG_PROP.CURRENT_TEMP_ENTITY_ID,
     CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID,
     CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
+    CONFIG_PROP.SUN_ENTITY_ID,
     CONFIG_PROP.TIME_ENTITY_ID,
     CONFIG_PROP.DATE_ENTITY_ID,
     CONFIG_PROP.NOW_LATER_NOW_TEMP_ENTITY_ID,
@@ -653,6 +654,12 @@ const INFERRED_ENTITY_RULES = {
         idPattern: {
             parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
             pattern: 'weather.%device_name%',
+        },
+    },
+    // Infer the sun entity specifically to "sun.sun"
+    [CONFIG_PROP.SUN_ENTITY_ID]: {
+        explicitId: {
+            entityId: 'sun.sun',
         },
     },
     // Infer the time entity specifically to "sensor.time"
@@ -795,16 +802,22 @@ const calculateCardEntities = async (hass, config) => {
         for (const key of CARD_ENTITIES) {
             if (!cardEntities[key].entity_id) {
                 const rule = INFERRED_ENTITY_RULES[key];
-                if (rule?.idPattern) {
+                if (rule?.explicitId) {
+                    entitiesChanged = true;
+                    cardEntities[key] = {
+                        entity_id: rule.explicitId.entityId,
+                        attribute: undefined,
+                        is_inferred: true,
+                    };
+                }
+                else if (rule?.idPattern) {
                     let inferredEntityId = rule.idPattern.pattern;
                     const parentDeviceConfigProp = rule.idPattern.parentDeviceConfigProp;
                     let parentDevice;
                     if (parentDeviceConfigProp) {
                         parentDevice = devices.find((device) => device.id === config[parentDeviceConfigProp]);
                         if (parentDevice && parentDevice.name) {
-                            const deviceNamePrefix = parentDevice.name
-                                .toLowerCase()
-                                .replace(' ', '_');
+                            const deviceNamePrefix = parentDevice.name.toLowerCase().replace(' ', '_');
                             inferredEntityId = inferredEntityId.replace('%device_name%', deviceNamePrefix);
                         }
                     }
@@ -926,7 +939,6 @@ var editor = {
 	summary: "Summary",
 	summaryWeatherEntity: "Summary Weather Entity",
 	sunEntity: "Sun Entity",
-	sunEntityHelper: "Entity used to determine day/night. Defaults to sun.sun.",
 	timeEntity: "Time Entity",
 	title: "Title",
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons",
@@ -3263,6 +3275,8 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         if (!this._config || !this._initialized)
             return x ``;
         const weatherEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
+        const sunEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUN_ENTITY_ID]);
+        console.log('🍷🍷', sunEntityDetails);
         return x `<div class="card-config">
       <div class="item-group">
         <!-- Title -->
@@ -3271,11 +3285,11 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         <!-- Weather Device -->
         ${this.renderWeatherDevicePicker(CONFIG_PROP.WEATHER_DEVICE_ID, this.localize('editor.weatherDevice'), true)}
 
-        <!-- Forecast Entity ID -->
+        <!-- Summary Entity ID -->
         ${this.renderEntityPicker(CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID, this.localize('editor.summaryWeatherEntity'), [DOMAIN.WEATHER], false, weatherEntityDetails.displayName)}
 
         <!-- Sun Entity ID -->
-        ${this.renderEntityPicker(CONFIG_PROP.SUN_ENTITY_ID, this.localize('editor.sunEntity'), ['sun', 'helper'], false, this.localize('editor.sunEntityHelper'))}
+        ${this.renderEntityPicker(CONFIG_PROP.SUN_ENTITY_ID, this.localize('editor.sunEntity'), ['sun', 'helper'], false, sunEntityDetails.displayName)}
       </div>
 
       <!-- Summary Options Panel -->

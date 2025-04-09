@@ -40,7 +40,6 @@
     "summary": "Summary",
     "summaryWeatherEntity": "Summary Weather Entity",
     "sunEntity": "Sun Entity",
-    "sunEntityHelper": "Entity used to determine day/night. Defaults to sun.sun.",
     "timeEntity": "Time Entity",
     "title": "Title",
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons",

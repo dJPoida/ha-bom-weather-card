@@ -3,7 +3,6 @@ export const CONFIG_PROP = {
 
   WEATHER_DEVICE_ID: 'weather_device_id',
   SUMMARY_WEATHER_ENTITY_ID: 'summary_weather_entity_id',
-  SUN_ENTITY_ID: 'sun_entity_id',
 
   SHOW_CURRENT_TEMP: 'show_current_temp',
   CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
@@ -14,6 +13,8 @@ export const CONFIG_PROP = {
   SHOW_WEATHER_ICON: 'show_weather_icon',
   WEATHER_ICON_ENTITY_ID: 'weather_icon_entity_id',
   USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
+
+  SUN_ENTITY_ID: 'sun_entity_id',
 
   SHOW_TIME: 'show_time',
   TIME_ENTITY_ID: 'time_entity_id',

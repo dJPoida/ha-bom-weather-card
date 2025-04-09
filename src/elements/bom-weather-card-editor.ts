@@ -510,6 +510,9 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
     if (!this._config || !this._initialized) return html``;
 
     const weatherEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
+    const sunEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUN_ENTITY_ID]);
+
+    console.log('🍷🍷', sunEntityDetails);
 
     return html`<div class="card-config">
       <div class="item-group">
@@ -519,7 +522,7 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
         <!-- Weather Device -->
         ${this.renderWeatherDevicePicker(CONFIG_PROP.WEATHER_DEVICE_ID, this.localize('editor.weatherDevice'), true)}
 
-        <!-- Forecast Entity ID -->
+        <!-- Summary Entity ID -->
         ${this.renderEntityPicker(
           CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID,
           this.localize('editor.summaryWeatherEntity'),
@@ -534,7 +537,7 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
           this.localize('editor.sunEntity'),
           ['sun', 'helper'],
           false,
-          this.localize('editor.sunEntityHelper')
+          sunEntityDetails.displayName
         )}
       </div>
 

@@ -1,8 +1,5 @@
 import {HomeAssistant} from 'custom-card-helpers';
-import {
-  A_CARD_ENTITY,
-  CARD_ENTITIES,
-} from '../constants/config-prop-entities.const';
+import {A_CARD_ENTITY, CARD_ENTITIES} from '../constants/config-prop-entities.const';
 import {INFERRED_ENTITY_RULES} from '../constants/inferred-entity-rules.const';
 import {CardConfig} from '../types/card-config.type';
 import {CardEntities} from '../types/card-entities.type';
@@ -17,10 +14,7 @@ import {fetchEntities} from './fetch-entities.helper';
  * @param props
  * @returns
  */
-export const calculateCardEntities = async (
-  hass: HomeAssistant,
-  config: CardConfig
-): Promise<CardEntities> => {
+export const calculateCardEntities = async (hass: HomeAssistant, config: CardConfig): Promise<CardEntities> => {
   // Start by iterating over all keys in the CARD_ENTITIES
   // Any entities that are not set in the config will be set here
   // User's specific config takes precedence
@@ -56,31 +50,30 @@ export const calculateCardEntities = async (
       if (!cardEntities[key].entity_id) {
         const rule = INFERRED_ENTITY_RULES[key as A_CARD_ENTITY];
 
-        if (rule?.idPattern) {
+        if (rule?.explicitId) {
+          entitiesChanged = true;
+          cardEntities[key] = {
+            entity_id: rule.explicitId.entityId,
+            attribute: undefined,
+            is_inferred: true,
+          };
+        } else if (rule?.idPattern) {
           let inferredEntityId = rule.idPattern.pattern;
 
           const parentDeviceConfigProp = rule.idPattern.parentDeviceConfigProp;
           let parentDevice: HassDeviceRegistryEntry | undefined;
           if (parentDeviceConfigProp) {
-            parentDevice = devices.find(
-              (device) => device.id === config[parentDeviceConfigProp]
-            );
+            parentDevice = devices.find((device) => device.id === config[parentDeviceConfigProp]);
 
             if (parentDevice && parentDevice.name) {
-              const deviceNamePrefix = parentDevice.name
-                .toLowerCase()
-                .replace(' ', '_');
-              inferredEntityId = inferredEntityId.replace(
-                '%device_name%',
-                deviceNamePrefix
-              );
+              const deviceNamePrefix = parentDevice.name.toLowerCase().replace(' ', '_');
+              inferredEntityId = inferredEntityId.replace('%device_name%', deviceNamePrefix);
             }
           }
 
           // Find the entity which matches the inferredEntityId
-          const entity = entities.find(
-            (entity) => entity.entity_id === inferredEntityId
-          );
+          const entity = entities.find((entity) => entity.entity_id === inferredEntityId);
+
           if (entity) {
             entitiesChanged = true;
             cardEntities[key] = {
@@ -93,8 +86,7 @@ export const calculateCardEntities = async (
 
         // Use another entities attribute instead of an entity itself
         else if (rule?.attributePattern) {
-          const parentCardEntity =
-            cardEntities[rule.attributePattern.parentCardEntity];
+          const parentCardEntity = cardEntities[rule.attributePattern.parentCardEntity];
 
           if (parentCardEntity?.entity_id) {
             entitiesChanged = true;
