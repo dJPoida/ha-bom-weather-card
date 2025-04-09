@@ -4,7 +4,7 @@ cards:
   - type: horizontal-stack
     cards:
       - type: custom:bom-weather-card
-        weather_device_id: 8b0d859e5d01bdc67264453de68ac5fa
+        sun_entity_id: sensor.test_sun
         show_current_temp: true
         show_feels_like_temp: true
         show_weather_icon: true

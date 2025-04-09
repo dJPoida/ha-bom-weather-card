@@ -8,8 +8,8 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.TITLE]: string | undefined;
 
   [CONFIG_PROP.WEATHER_DEVICE_ID]: string | undefined;
-
   [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: string | undefined;
+  [CONFIG_PROP.SUN_ENTITY_ID]: string | undefined;
 
   [CONFIG_PROP.SHOW_CURRENT_TEMP]: boolean | undefined;
   [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: string | undefined;

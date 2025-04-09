@@ -1,5 +1,7 @@
 import {HomeAssistant} from 'custom-card-helpers';
 import log from 'loglevel';
+import {CONFIG_PROP} from '../constants/config-prop.const';
+import {CardConfig} from '../types/card-config.type';
 
 // Define an interface for the themes object including darkMode
 interface HassThemesWithDarkMode {
@@ -9,9 +11,19 @@ interface HassThemesWithDarkMode {
 export class CardState {
   private _hass: HomeAssistant | null = null;
   private _previousHass: HomeAssistant | null = null; // Store previous hass state
+  private _sunEntityId: string = 'sun.sun'; // Default sun entity
 
   constructor() {
     // Initial setup if needed
+  }
+
+  /**
+   * Sets the configuration for the card state.
+   * @param config The card configuration object.
+   */
+  public setConfig(config: CardConfig): void {
+    this._sunEntityId = config[CONFIG_PROP.SUN_ENTITY_ID] || 'sun.sun';
+    log.debug('[CardState] Sun entity configured:', this._sunEntityId);
   }
 
   /**
@@ -39,8 +51,8 @@ export class CardState {
     const darkModeChanged = oldThemes?.darkMode !== newThemes?.darkMode;
 
     // Check if sun state changed
-    const oldSunState = oldHass.states['sun.sun']?.state;
-    const newSunState = newHass.states['sun.sun']?.state;
+    const oldSunState = oldHass.states[this._sunEntityId]?.state;
+    const newSunState = newHass.states[this._sunEntityId]?.state;
     const sunStateChanged = oldSunState !== newSunState;
 
     // Return true if any relevant part changed
@@ -56,8 +68,10 @@ export class CardState {
 
   // Properties will be added here
   get dayMode(): boolean {
-    // Default to true if hass or sun.sun state is unavailable
-    return this._hass?.states['sun.sun'] ? this._hass.states['sun.sun'].state === 'above_horizon' : true;
+    // Default to true if hass or the configured sun entity state is unavailable
+    return this._hass?.states[this._sunEntityId]
+      ? this._hass.states[this._sunEntityId].state === 'above_horizon'
+      : true;
   }
 
   get darkMode(): boolean {

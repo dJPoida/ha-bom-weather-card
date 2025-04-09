@@ -75,6 +75,8 @@ export class BomWeatherCard extends LitElement {
       throw new Error(this.localize('error.invalidConfigProperty'));
     }
     this._config = {...this._config, ...config};
+    // Pass the config to CardState
+    this._cardState.setConfig(this._config);
   }
 
   private async _calculateCardEntities(): Promise<void> {
@@ -169,6 +171,11 @@ export class BomWeatherCard extends LitElement {
       }
       // Ensure sun.sun is included for day/night check - Handled by CardState
       // relevantEntityIds.add('sun.sun');
+      // Add the configured sun entity ID to relevant entities
+      const sunEntityId = this._cardState['_sunEntityId']; // Access private member for shouldUpdate logic
+      if (sunEntityId) {
+        relevantEntityIds.add(sunEntityId);
+      }
 
       for (const entityId of relevantEntityIds) {
         if (oldHass.states[entityId] !== this.hass!.states[entityId]) {

@@ -18,8 +18,8 @@ export const DEFAULT_CARD_CONFIG: CardConfig = {
   [CONFIG_PROP.TITLE]: undefined,
 
   [CONFIG_PROP.WEATHER_DEVICE_ID]: undefined,
-
   [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: undefined,
+  [CONFIG_PROP.SUN_ENTITY_ID]: undefined,
 
   [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
   [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,

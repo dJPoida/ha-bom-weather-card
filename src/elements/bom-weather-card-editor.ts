@@ -527,6 +527,15 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
           false,
           weatherEntityDetails.displayName
         )}
+
+        <!-- Sun Entity ID -->
+        ${this.renderEntityPicker(
+          CONFIG_PROP.SUN_ENTITY_ID,
+          this.localize('editor.sunEntity'),
+          ['sun', 'helper'],
+          false,
+          this.localize('editor.sunEntityHelper')
+        )}
       </div>
 
       <!-- Summary Options Panel -->

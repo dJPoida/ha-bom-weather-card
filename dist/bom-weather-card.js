@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1675";
+var version = "0.0.1696";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -470,6 +470,7 @@ const CONFIG_PROP = {
     TITLE: 'title',
     WEATHER_DEVICE_ID: 'weather_device_id',
     SUMMARY_WEATHER_ENTITY_ID: 'summary_weather_entity_id',
+    SUN_ENTITY_ID: 'sun_entity_id',
     SHOW_CURRENT_TEMP: 'show_current_temp',
     CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
     SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
@@ -515,6 +516,7 @@ const DEFAULT_CARD_CONFIG = {
     [CONFIG_PROP.TITLE]: undefined,
     [CONFIG_PROP.WEATHER_DEVICE_ID]: undefined,
     [CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SUN_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_CURRENT_TEMP]: true,
     [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
@@ -923,6 +925,8 @@ var editor = {
 	showWeatherIcon: "Show Weather Icon",
 	summary: "Summary",
 	summaryWeatherEntity: "Summary Weather Entity",
+	sunEntity: "Sun Entity",
+	sunEntityHelper: "Entity used to determine day/night. Defaults to sun.sun.",
 	timeEntity: "Time Entity",
 	title: "Title",
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons",
@@ -1005,7 +1009,16 @@ class CardState {
     constructor() {
         this._hass = null;
         this._previousHass = null; // Store previous hass state
+        this._sunEntityId = 'sun.sun'; // Default sun entity
         // Initial setup if needed
+    }
+    /**
+     * Sets the configuration for the card state.
+     * @param config The card configuration object.
+     */
+    setConfig(config) {
+        this._sunEntityId = config[CONFIG_PROP.SUN_ENTITY_ID] || 'sun.sun';
+        log.debug('[CardState] Sun entity configured:', this._sunEntityId);
     }
     /**
      * Updates the internal hass state and checks for relevant changes.
@@ -1028,8 +1041,8 @@ class CardState {
         const newThemes = newHass.themes;
         const darkModeChanged = oldThemes?.darkMode !== newThemes?.darkMode;
         // Check if sun state changed
-        const oldSunState = oldHass.states['sun.sun']?.state;
-        const newSunState = newHass.states['sun.sun']?.state;
+        const oldSunState = oldHass.states[this._sunEntityId]?.state;
+        const newSunState = newHass.states[this._sunEntityId]?.state;
         const sunStateChanged = oldSunState !== newSunState;
         // Return true if any relevant part changed
         const didChange = darkModeChanged || sunStateChanged;
@@ -1041,8 +1054,10 @@ class CardState {
     }
     // Properties will be added here
     get dayMode() {
-        // Default to true if hass or sun.sun state is unavailable
-        return this._hass?.states['sun.sun'] ? this._hass.states['sun.sun'].state === 'above_horizon' : true;
+        // Default to true if hass or the configured sun entity state is unavailable
+        return this._hass?.states[this._sunEntityId]
+            ? this._hass.states[this._sunEntityId].state === 'above_horizon'
+            : true;
     }
     get darkMode() {
         // Default to false if hass or themes object is unavailable
@@ -1237,6 +1252,8 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             throw new Error(this.localize('error.invalidConfigProperty'));
         }
         this._config = { ...this._config, ...config };
+        // Pass the config to CardState
+        this._cardState.setConfig(this._config);
     }
     async _calculateCardEntities() {
         this._cardEntities = await calculateCardEntities(this.hass, this._config);
@@ -1315,6 +1332,11 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             }
             // Ensure sun.sun is included for day/night check - Handled by CardState
             // relevantEntityIds.add('sun.sun');
+            // Add the configured sun entity ID to relevant entities
+            const sunEntityId = this._cardState['_sunEntityId']; // Access private member for shouldUpdate logic
+            if (sunEntityId) {
+                relevantEntityIds.add(sunEntityId);
+            }
             for (const entityId of relevantEntityIds) {
                 if (oldHass.states[entityId] !== this.hass.states[entityId]) {
                     log.debug(`shouldUpdate: true (state changed for ${entityId})`);
@@ -3240,6 +3262,9 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
 
         <!-- Forecast Entity ID -->
         ${this.renderEntityPicker(CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID, this.localize('editor.summaryWeatherEntity'), [DOMAIN.WEATHER], false, weatherEntityDetails.displayName)}
+
+        <!-- Sun Entity ID -->
+        ${this.renderEntityPicker(CONFIG_PROP.SUN_ENTITY_ID, this.localize('editor.sunEntity'), ['sun', 'helper'], false, this.localize('editor.sunEntityHelper'))}
       </div>
 
       <!-- Summary Options Panel -->
