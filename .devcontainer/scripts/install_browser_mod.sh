@@ -43,7 +43,7 @@ if [ -f "$HA_VERSION" ]; then
       # Move the Browser Mod integration to the target directory
       mv "$SOURCE_DIR" "$COMPONENT_DIR"
       echo "Browser Mod integration installed successfully. Restart Home Assistant before using it."
-      echo "Browser Mod configuration is typically done via the UI after restart."
+      echo "Once restarted, go to the HA Settings -> Devices and Integrations -> Add Integration -> Browser Mod"
     else
       echo "Error: Browser Mod integration directory not found in the expected location within the extracted files ($SOURCE_DIR)."
       # Optionally list files for debugging:
@@ -54,7 +54,8 @@ if [ -f "$HA_VERSION" ]; then
     # Clean up temporary directory
     rm -rf "$TEMP_DIR"
   else
-    echo "Browser Mod integration is already installed."
+    echo "Browser Mod integration is already installed.  Go to the HA Settings -> Devices and Integrations -> Add Integration -> Browser Mod."
+    echo "Then register your browser via http://localhost:8123/browser-mod (Recommended use the browser id `test_browser`)"
   fi
 else
   echo "Home Assistant has not been configured yet. Ensure you run through the configuration wizard first."

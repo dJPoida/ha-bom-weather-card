@@ -1,5 +1,72 @@
 title: Test View
+type: panel
 icon: mdi:test-tube
 cards:
-  - type: custom:bom-weather-card
-    title: "Test Bom Weather"
+  - type: horizontal-stack
+    cards:
+      - type: custom:bom-weather-card
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: >-
+              # BOM (Bureau of Meteorology) Weather Card
+
+              [https://github.com/dJPoida/ha-bom-weather-card](https://github.com/dJPoida/ha-bom-weather-card)
+
+
+              This page will allow you to test the card's various behavior.
+
+
+              **Note:** Refer to the `README.md` for instructions on how to
+              install the [Browser Mod
+              integration](https://github.com/thomasloven/hass-browser_mod)
+              and [Bremor's Bureau of Meteorology Custom
+              Component](https://github.com/bremor/bureau_of_meteorology).
+          - type: heading
+            icon: mdi:palette
+            heading: Theme Control
+            heading_style: title
+          - type: horizontal-stack
+            cards:
+              - show_name: true
+                show_icon: true
+                type: button
+                name: Dark Theme
+                icon: mdi:weather-night
+                icon_height: 48px
+                tap_action:
+                  action: perform-action
+                  perform_action: browser_mod.set_theme
+                  data:
+                    browser_id: []
+                    dark: dark
+                  target: {}
+              - show_name: true
+                show_icon: true
+                type: button
+                name: Light Theme
+                icon: mdi:weather-sunny
+                icon_height: 48px
+                tap_action:
+                  action: perform-action
+                  perform_action: browser_mod.set_theme
+                  data:
+                    browser_id: []
+                    dark: light
+                  target: {}
+          - type: heading
+            icon: mdi:palette
+            heading: Troubleshooting
+            heading_style: title
+          - type: markdown
+            content: >-
+              - Error: `Custom element doesn't exist: bom-weather-card`. 
+
+              Make sure the development server is running by executing `npm
+              run dev` or Refer to the **README.md** section entitled
+              "Getting Started".
+
+              - Clicking "Dark Theme" and "Light Theme" does nothing.
+
+              The **Browser Mod** integration must be installed to enable
+              theme switching. Refer to the **README.md**.
