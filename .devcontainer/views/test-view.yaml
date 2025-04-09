@@ -1,10 +1,21 @@
 title: Test View
-type: panel
 icon: mdi:test-tube
 cards:
   - type: horizontal-stack
     cards:
       - type: custom:bom-weather-card
+        weather_device_id: 8b0d859e5d01bdc67264453de68ac5fa
+        show_current_temp: true
+        show_feels_like_temp: true
+        show_weather_icon: true
+        show_now_later_temps: true
+        show_warning_count: true
+        show_rain_summary: true
+        show_forecast_summary: true
+        show_hourly_forecast: true
+        show_daily_forecast: true
+        show_daily_forecast_title: true
+        daily_forecast_number_of_days: 5
       - type: vertical-stack
         cards:
           - type: markdown
@@ -56,6 +67,38 @@ cards:
                   target: {}
           - type: heading
             icon: mdi:palette
+            heading: Day/Night Control
+            heading_style: title
+          - type: horizontal-stack
+            cards:
+              - show_name: true
+                show_icon: true
+                type: button
+                name: Above Horizon
+                icon: mdi:weather-sunset-up
+                icon_height: 48px
+                tap_action:
+                  action: perform-action
+                  perform_action: input_select.select_option
+                  data:
+                    option: above_horizon
+                  target:
+                    entity_id: input_select.test_sun_state
+              - show_name: true
+                show_icon: true
+                type: button
+                name: Below Horizon
+                icon: mdi:weather-sunset-down
+                icon_height: 48px
+                tap_action:
+                  action: perform-action
+                  perform_action: input_select.select_option
+                  data:
+                    option: below_horizon
+                  target:
+                    entity_id: input_select.test_sun_state
+          - type: heading
+            icon: mdi:palette
             heading: Troubleshooting
             heading_style: title
           - type: markdown
@@ -63,10 +106,11 @@ cards:
               - Error: `Custom element doesn't exist: bom-weather-card`. 
 
               Make sure the development server is running by executing `npm
-              run dev` or Refer to the **README.md** section entitled
+              run dev` or refer to the **README.md** section entitled
               "Getting Started".
 
               - Clicking "Dark Theme" and "Light Theme" does nothing.
 
               The **Browser Mod** integration must be installed to enable
               theme switching. Refer to the **README.md**.
+type: panel

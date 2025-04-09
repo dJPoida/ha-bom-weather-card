@@ -72,16 +72,20 @@ The first time you start the container using `npm run hass:start` and browse to 
    3. Search for **Bureau of Meteorology**
    4. Follow through the setup wizard to install the weather entities. Ideally select and create ALL entities so that you can test all card features.
 
-## Additional Home Assistant plugins
+## Additional Home Assistant integrations and plugins
 
 Because the Home Assistant is [installed in a Docker Container and not as a Supervised instance](https://www.home-assistant.io/installation/#advanced-installation-methods), many of the configuration features like addons are not available. To access these other features you will need to install and run Home Assistant differently.
+
+You can install all of the below integrations by using the command `npm run hass:install_integrations` or follow each of the installation steps below.
+
+**Note:** configuration of each individual integration will still be required even if all integrations are installed at the same time
 
 ### Bremor's Bureau of Meteorology weather provider
 
 [bremor's Bureau of Meteorology Custom Component](https://github.com/bremor/bureau_of_meteorology) weather provider can be added by following these steps:
 
 1. Ensure Home Assistant is running via `npm run hass:start`
-2. Run `npm run install:bureau_of_meteorology`
+2. Run `npm run hass:install:bureau_of_meteorology`
 3. Restart the container `npm run hass:restart`
 4. Browse to **[Settings -> Devices and Services](http://localhost:8123/config/integrations/dashboard)**
 5. Click **"+ Add Integration"**
@@ -93,7 +97,7 @@ Because the Home Assistant is [installed in a Docker Container and not as a Supe
 The [Home Assistant Community Store (HACS)](https://www.hacs.xyz/) can be added by follow these steps:
 
 1. Ensure Home Assistant is running via `npm run hass:start`
-2. Run `npm run install:hacs`
+2. Run `npm run hass:install:hacs`
 3. Restart the container `npm run hass:restart`
 4. Browse to **[Settings -> Devices and Services](http://localhost:8123/config/integrations/dashboard)**
 5. Click **"+ Add Integration"**
@@ -106,7 +110,7 @@ The [Home Assistant Community Store (HACS)](https://www.hacs.xyz/) can be added 
 The [Browser Mod integration](https://github.com/thomasloven/hass-browser_mod) allows you to control web browsers within Home Assistant. It can be added by following these steps:
 
 1. Ensure Home Assistant is running via `npm run hass:start`
-2. Run `npm run install:browser_mod`
+2. Run `npm run hass:install:browser_mod`
 3. Restart the container `npm run hass:restart`
 4. Browse to **[Settings -> Devices and Services](http://localhost:8123/config/integrations/dashboard)**
 5. Click **"+ Add Integration"**
@@ -147,14 +151,17 @@ Stops the Home Assistant Docker container. This is essentially a wrapper around 
 Reset the Home Assistant Docker instance by cleaning out the `.devcontainer` folder. Make sure the container is not running before executing this command. \
 **WARNING**: You will lose all of your previously configured Home Assistant devices and entities
 
-**`npm run install:bureau_of_meteorology`** \
-Install [Bremor's Bureau of Meteorology weather provider](#bremors-bureau-of-meteorology-weather-provider) into your Home Assistant Docker container
+**`npm run hass:install_integrations`** \
+Install all of the useful integrations into your Home Assistant Docker container that will be required to develop the BOM Weather Card.
 
-**`npm run install:hacs`** \
-Install [Home Assistant Community Store (HACS)](#home-assistant-community-store-hacs) into your Home Assistant Docker container
+**`npm run hass:install:bureau_of_meteorology`** \
+Selectively only install [Bremor's Bureau of Meteorology weather provider](#bremors-bureau-of-meteorology-weather-provider) into your Home Assistant Docker container
 
-**`npm run install:browser_mod`** \
-Install [Browser Mod](#browser-mod) into your Home Assistant Docker container
+**`npm run hass:install:hacs`** \
+Selectively only install [Home Assistant Community Store (HACS)](#home-assistant-community-store-hacs) into your Home Assistant Docker container
+
+**`npm run hass:install:browser_mod`** \
+Selectively only install [Browser Mod](#browser-mod) into your Home Assistant Docker container
 
 ## Troubleshooting
 
@@ -164,14 +171,18 @@ If you receive this message when debugging the card in Home Assistant, first try
 
 ### "The edit UI is not available when in YAML mode."
 
-This message appears when you try to edit the Test View in the Test Dashboard. Unfortunately the test dashboard is controlled by the .yaml in this repo and thus can't be edited. Create a new view in the Overview dashboard to manually create instances of this component and experiment with the edit component.
+This message appears when you try to edit the Test View in the Test Dashboard. Unfortunately the test dashboard is controlled by the .yaml in this repo and thus can not be edited. Create a new view in the Overview dashboard to manually create instances of this component and experiment with the edit component.
 
-### Can't edit the default dashboard
+### I can't edit the default dashboard
 
 This dashboard is initially controlled by Home Assistant. To to take control of it:
 
 - Click the pencil (edit) button in the top right
 - Select the three dots menu and select "Take Control"
+
+### I can't toggle the Dark and Light mode debug controls
+
+The [Browser Mod integration](#browser-mod) is required for this debug feature to work. Make sure it is installed and configured.
 
 # Field and Data source mapping and inference
 

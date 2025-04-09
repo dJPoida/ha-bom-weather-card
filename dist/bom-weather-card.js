@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1674";
+var version = "0.0.1675";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.

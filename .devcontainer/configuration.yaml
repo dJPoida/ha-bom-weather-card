@@ -16,3 +16,27 @@ frontend:
 
 browser_mod:
   prefix: 'browser_mod_'
+
+input_select:
+  test_sun_state:
+    name: Test Sun State
+    options:
+      - above_horizon
+      - below_horizon
+    initial: above_horizon
+    icon: mdi:white-balance-sunny
+
+template:
+  - sensor:
+      - name: 'Test Sun'
+        state: "{{ states('input_select.test_sun_state') }}"
+        attributes:
+          next_dawn: "{{ state_attr('sun.sun', 'next_dawn') }}"
+          next_dusk: "{{ state_attr('sun.sun', 'next_dusk') }}"
+          next_midnight: "{{ state_attr('sun.sun', 'next_midnight') }}"
+          next_noon: "{{ state_attr('sun.sun', 'next_noon') }}"
+          next_rising: "{{ state_attr('sun.sun', 'next_rising') }}"
+          next_setting: "{{ state_attr('sun.sun', 'next_setting') }}"
+          elevation: "{{ state_attr('sun.sun', 'elevation') }}"
+          azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
+          rising: "{{ state_attr('sun.sun', 'rising') }}"
