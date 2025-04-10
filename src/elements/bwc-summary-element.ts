@@ -48,7 +48,7 @@ export class SummaryElement extends LitElement {
           --bwc-text-color-inverted: var(--text-light-primary-color);
         }
 
-        &.showConditionBackground {
+        &.show-condition-background {
           background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
             var(--background-url);
           background-position: center;
@@ -192,7 +192,7 @@ export class SummaryElement extends LitElement {
 
     return html`<div
       class=${classNames('summary', this.weatherConditionClass, {
-        showConditionBackground,
+        'show-condition-background': showConditionBackground,
         day: this.dayMode,
         night: !this.dayMode,
         'dark-mode': this.darkMode,

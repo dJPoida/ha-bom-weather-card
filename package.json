@@ -1,6 +1,6 @@
 {
   "name": "@djpoida/ha-bom-weather-card",
-  "version": "0.0.1789",
+  "version": "0.0.1790",
   "author": "Peter Eldred",
   "license": "MIT",
   "description": "A Home Assistant card designed to display weather information in the style of the BOM (Bureau of Meteorology) Australia app",

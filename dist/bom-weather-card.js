@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1789";
+var version = "0.0.1790";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -1913,7 +1913,7 @@ let SummaryElement = class SummaryElement extends r$2 {
           --bwc-text-color-inverted: var(--text-light-primary-color);
         }
 
-        &.showConditionBackground {
+        &.show-condition-background {
           background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
             var(--background-url);
           background-position: center;
@@ -1989,7 +1989,7 @@ let SummaryElement = class SummaryElement extends r$2 {
         const showForecastSummary = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_FORECAST_SUMMARY, CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID);
         return x `<div
       class=${classnames('summary', this.weatherConditionClass, {
-            showConditionBackground,
+            'show-condition-background': showConditionBackground,
             day: this.dayMode,
             night: !this.dayMode,
             'dark-mode': this.darkMode,
