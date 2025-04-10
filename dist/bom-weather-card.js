@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1739";
+var version = "0.0.1789";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -474,8 +474,9 @@ const CONFIG_PROP = {
     CURRENT_TEMP_ENTITY_ID: 'current_temp_entity_id',
     SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
     FEELS_LIKE_TEMP_ENTITY_ID: 'feels_like_temp_entity_id',
+    WEATHER_CONDITION_ENTITY_ID: 'weather_condition_entity_id',
+    SHOW_CONDITION_BACKGROUND: 'show_condition_background',
     SHOW_WEATHER_ICON: 'show_weather_icon',
-    WEATHER_ICON_ENTITY_ID: 'weather_icon_entity_id',
     USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
     SUN_ENTITY_ID: 'sun_entity_id',
     SHOW_TIME: 'show_time',
@@ -520,8 +521,9 @@ const DEFAULT_CARD_CONFIG = {
     [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: true,
     [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: undefined,
+    [CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]: undefined,
+    [CONFIG_PROP.SHOW_CONDITION_BACKGROUND]: true,
     [CONFIG_PROP.SHOW_WEATHER_ICON]: true,
-    [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: undefined,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: undefined,
     [CONFIG_PROP.SUN_ENTITY_ID]: undefined,
     [CONFIG_PROP.SHOW_TIME]: undefined,
@@ -574,9 +576,9 @@ const WEATHER_CONDITION = {
 
 const WEATHER_CONDITION_CLASSES = {
     [WEATHER_CONDITION.SUNNY]: 'clear',
-    [WEATHER_CONDITION.CLEAR_NIGHT]: 'clear night',
+    [WEATHER_CONDITION.CLEAR_NIGHT]: 'clear',
     [WEATHER_CONDITION.PARTLY_CLOUDY]: 'partially-cloudy',
-    [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy night',
+    [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy',
     [WEATHER_CONDITION.MOSTLY_SUNNY]: 'partially-cloudy',
     [WEATHER_CONDITION.CLOUDY]: 'cloudy',
     [WEATHER_CONDITION.LIGHTNING]: 'stormy',
@@ -599,7 +601,7 @@ const CARD_ENTITIES = [
     CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID,
     CONFIG_PROP.CURRENT_TEMP_ENTITY_ID,
     CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID,
-    CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
+    CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID,
     CONFIG_PROP.SUN_ENTITY_ID,
     CONFIG_PROP.TIME_ENTITY_ID,
     CONFIG_PROP.DATE_ENTITY_ID,
@@ -650,7 +652,7 @@ const INFERRED_ENTITY_RULES = {
     // There is no inference for the feels like temperature. It must be defined in the card config.
     [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: {},
     // Infer the weather icon entity from the device name "weather.%device_name%"
-    [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: {
+    [CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]: {
         idPattern: {
             parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
             pattern: 'weather.%device_name%',
@@ -737,7 +739,7 @@ async function fetchDevices(hass) {
         return await hass.callWS({ type: 'config/device_registry/list' });
     }
     catch (error) {
-        log.error('Error fetching devices', error);
+        log.error('[fetchDevices()] Error fetching devices', error);
         return [];
     }
 }
@@ -759,7 +761,7 @@ async function fetchEntities(hass, params) {
         return registeredEntities;
     }
     catch (error) {
-        log.error('Error fetching entities', error);
+        log.error('[fetchEntities()] Error fetching entities', error);
         return [];
     }
 }
@@ -925,6 +927,7 @@ var editor = {
 	rainSummaryEntity: "Rain Summary Entity",
 	required: "Required",
 	showCurrentTemperature: "Show Current Temperature",
+	showConditionBackground: "Show Condition Background",
 	showDailyForecast: "Show Daily Forecast",
 	showDailyForecastTitle: "Show Daily Forecast Title",
 	showDate: "Show Date",
@@ -944,7 +947,7 @@ var editor = {
 	useDefaultHaWeatherIcons: "Use Default HA Weather Icons",
 	warningsCountEntity: "Warnings Count Entity",
 	weatherDevice: "Weather Device",
-	weatherIconEntity: "Weather Icon Entity"
+	weatherConditionEntity: "Weather Condition Entity"
 };
 var error = {
 	invalidConfigProperty: "Invalid config property: {property}",
@@ -1226,7 +1229,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         super(...arguments);
         this._config = { ...DEFAULT_CARD_CONFIG };
         this._cardEntities = {};
-        this._weatherClass = '';
+        this._weatherConditionClass = '';
         this.language = DEFAULT_LANGUAGE;
         this.localize = getLocalizer(this.language);
         this._cardState = new CardState();
@@ -1248,6 +1251,11 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
           --bwc-text-color: var(--text-light-primary-color);
           --bwc-text-color-inverted: var(--text-primary-color);
         }
+
+        &.dark-mode {
+          --bwc-text-color: var(--text-primary-color);
+          --bwc-text-color-inverted: var(--text-light-primary-color);
+        }
       }
 
       h1.card-header {
@@ -1268,17 +1276,19 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             throw new Error(this.localize('error.invalidConfigProperty'));
         }
         this._config = { ...this._config, ...config };
-        // Pass the config to CardState
         this._cardState.setConfig(this._config);
     }
     async _calculateCardEntities() {
         this._cardEntities = await calculateCardEntities(this.hass, this._config);
-        log.debug('Card Entities Recalculated:', this._cardEntities);
+        log.debug('[BomWeatherCard] Card Entities Recalculated:', this._cardEntities);
     }
-    async _calculateWeatherClass() {
-        const currentCondition = getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
-        this._weatherClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
-        log.debug('Weather class recalculated:', { condition: currentCondition, weatherClass: this._weatherClass });
+    async _calculateWeatherConditionClass() {
+        const currentCondition = getCardEntityValueAsString(this.hass, this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]);
+        this._weatherConditionClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
+        log.debug('[BomWeatherCard] Weather Condition Class recalculated:', {
+            condition: currentCondition,
+            weatherConditionClass: this._weatherConditionClass,
+        });
     }
     _calculateMinHeight() {
         let totalHeight = 0;
@@ -1287,7 +1297,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             totalHeight += ESTIMATED_TITLE_HEIGHT;
         }
         totalHeight += ESTIMATED_BASE_PADDING_HEIGHT;
-        log.debug(`Calculated min-height: ${totalHeight}em`);
+        log.debug(`[BomWeatherCard] Calculated min-height: ${totalHeight}em`);
         return `${totalHeight}em`;
     }
     shouldUpdate(changedProperties) {
@@ -1299,35 +1309,28 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             }
         });
         if (hasNonHassChanges) {
-            log.debug('shouldUpdate: true (non-hass property changed)');
+            log.debug('[BomWeatherCard] shouldUpdate: true (non-hass property changed)');
             return true;
         }
-        log.debug('[BomWeatherCard] shouldUpdate evaluating hass change');
+        log.debug('[BomWeatherCard] shouldUpdate: evaluating hass change');
         // If only 'hass' changed, perform a deeper comparison
         if (changedProperties.has('hass')) {
-            // === Update CardState first ===
             const cardStateChanged = this._cardState.updateHass(this.hass);
-            // ==============================
             const oldHass = changedProperties.get('hass');
             log.debug('[BomWeatherCard] shouldUpdate: hass changed', { hasOldHass: !!oldHass });
             // On first load, oldHass will be undefined, allow update
             if (!oldHass) {
-                log.debug('shouldUpdate: true (initial hass set)');
-                // No need to call updateHass again, already called above
-                // this._cardState.updateHass(this.hass);
+                log.debug('[BomWeatherCard] shouldUpdate: true (initial hass set)');
                 return true;
             }
-            // Pass hass to CardState - No longer needed here, handled in updateHass call
-            // this._cardState.hass = this.hass;
             // 1. Check if CardState detected relevant changes (result captured above)
-            // const cardStateChanged = this._cardState.updateHass(this.hass);
             if (cardStateChanged) {
-                log.debug('shouldUpdate: true (CardState detected changes)');
+                log.debug('[BomWeatherCard] shouldUpdate: true (CardState detected changes)');
                 return true;
             }
             // 2. Check locale language
             if (oldHass.locale?.language !== this.hass.locale?.language) {
-                log.debug('shouldUpdate: true (locale changed)');
+                log.debug('[BomWeatherCard] shouldUpdate: true (locale changed)');
                 return true;
             }
             // 3. Check states of entities used by this card
@@ -1346,8 +1349,6 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             if (typeof weatherEntity === 'string' && weatherEntity.includes('.')) {
                 relevantEntityIds.add(weatherEntity);
             }
-            // Ensure sun.sun is included for day/night check - Handled by CardState
-            // relevantEntityIds.add('sun.sun');
             // Add the configured sun entity ID to relevant entities
             const sunEntityId = this._cardState['_sunEntityId']; // Access private member for shouldUpdate logic
             if (sunEntityId) {
@@ -1355,16 +1356,16 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             }
             for (const entityId of relevantEntityIds) {
                 if (oldHass.states[entityId] !== this.hass.states[entityId]) {
-                    log.debug(`shouldUpdate: true (state changed for ${entityId})`);
+                    log.debug(`[BomWeatherCard] shouldUpdate: true (state changed for ${entityId})`);
                     return true;
                 }
             }
             // If none of the relevant parts changed, skip the update
-            log.debug('shouldUpdate: false (only non-relevant hass changes detected)');
+            log.debug('[BomWeatherCard] shouldUpdate: false (only non-relevant hass changes detected)');
             return false;
         }
         // Default fallback (should not happen if logic is correct)
-        log.debug('shouldUpdate: true (default fallback)');
+        log.debug('[BomWeatherCard] shouldUpdate: true (default fallback)');
         return true;
     }
     firstUpdated(changedProperties) {
@@ -1373,31 +1374,35 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         if (this.hass) {
             log.debug('[BomWeatherCard] firstUpdated: Initializing CardState with hass.');
             this._cardState.updateHass(this.hass);
-            this.requestUpdate(); // Ensure render is re-evaluated now that CardState has hass
+            this.requestUpdate();
         }
-        const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
+        const initTasks = [this._calculateCardEntities, this._calculateWeatherConditionClass];
         Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
-            log.debug('Initialization tasks complete.');
+            log.debug('[BomWeatherCard] Initialization tasks complete.');
         });
     }
     updated(changedProps) {
         super.updated(changedProps);
-        log.debug('updated():', changedProps);
-        const entityIdKey = CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID;
-        // Update CardState hass if hass changed - No longer needed, hass passed via shouldUpdate/updateHass
-        // if (changedProps.has('hass')) {
-        //   this._cardState.hass = this.hass;
-        // }
-        // Original logic for entity calculation on config change (can stay)
+        log.debug('[BomWeatherCard] updated():', changedProps);
         if (changedProps.has('_config')) {
-            log.debug('config changed', this._config);
-            this._calculateCardEntities(); // Recalculate entities if any config changed
+            log.debug('[BomWeatherCard] config changed', this._config);
+            this._calculateCardEntities();
         }
-        // Update the weather class that is assigned to the card
-        if (changedProps.has('_cardEntities')) {
+        // When either the Card Entity for the weather condition or the hass state for the assigned entity changes,
+        // Update the weather condition class that is assigned to the card
+        if (changedProps.has('_cardEntities') || changedProps.has('hass')) {
             const oldCardEntities = changedProps.get('_cardEntities');
-            if (oldCardEntities?.[entityIdKey] !== this._cardEntities[entityIdKey]) {
-                this._calculateWeatherClass();
+            const oldHass = changedProps.get('hass');
+            if (
+            // Entity ID for the weather condition has changed
+            oldCardEntities?.[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID] !==
+                this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID] ||
+                // State for the weather condition has changed
+                (this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]?.entity_id &&
+                    oldHass?.states[this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID].entity_id] !==
+                        this.hass?.states[this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID].entity_id])) {
+                log.debug('[BomWeatherCard] Weather condition changed', this._config);
+                this._calculateWeatherConditionClass();
             }
         }
         // This section now only runs when shouldUpdate allows an update involving hass
@@ -1409,15 +1414,15 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         }
     }
     connectedCallback() {
-        log.debug('✅ connected to DOM');
+        log.debug('[BomWeatherCard] ✅ connected to DOM');
         super.connectedCallback();
     }
     disconnectedCallback() {
-        log.debug('❌ disconnected from DOM');
+        log.debug('[BomWeatherCard] ❌ disconnected from DOM');
         super.disconnectedCallback();
     }
     render() {
-        log.debug('🖼️ [BomWeatherCard] Rendering card...');
+        log.debug('[BomWeatherCard] 🖼️ Rendering card...');
         // Don't render until CardState has received hass
         if (!this._cardState.hasHass) {
             log.debug('[BomWeatherCard] Skipping render: CardState has no hass yet.');
@@ -1426,7 +1431,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         log.debug('[BomWeatherCard] State for render:', {
             darkMode: this._cardState.darkMode,
             dayMode: this._cardState.dayMode,
-            weatherClass: this._weatherClass,
+            weatherConditionClass: this._weatherConditionClass,
             hass: this.hass,
             config: this._config,
         });
@@ -1437,8 +1442,8 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
             'light-mode': !this._cardState.darkMode,
         };
         // Conditionally add weather class if it exists
-        if (this._weatherClass) {
-            cardClasses[this._weatherClass] = true;
+        if (this._weatherConditionClass) {
+            cardClasses[this._weatherConditionClass] = true;
         }
         const cardStyles = {
             '--bwc-card-calculated-min-height': this._calculateMinHeight(),
@@ -1455,7 +1460,7 @@ let BomWeatherCard = class BomWeatherCard extends r$2 {
         .localize=${this.localize}
         .dayMode=${this._cardState.dayMode}
         .darkMode=${this._cardState.darkMode}
-        .weatherClass=${this._weatherClass}
+        .weatherConditionClass=${this._weatherConditionClass}
         .weatherSummaryData=${this._weatherSummaryData}
       ></bwc-summary-element>
 
@@ -1497,7 +1502,7 @@ __decorate([
 ], BomWeatherCard.prototype, "_cardEntities", undefined);
 __decorate([
     r()
-], BomWeatherCard.prototype, "_weatherClass", undefined);
+], BomWeatherCard.prototype, "_weatherConditionClass", undefined);
 __decorate([
     r()
 ], BomWeatherCard.prototype, "_weatherSummaryData", undefined);
@@ -1542,13 +1547,13 @@ let BwcDailyForecastElement = class BwcDailyForecastElement extends r$2 {
         const oldForecastEntityId = changedProps.get('forecastEntityId');
         // Unsubscribe if hass or entityId are removed
         if ((!this.hass || !this.forecastEntityId) && this._forecastSubscribed) {
-            log.debug('Hass or forecastEntityId removed, unsubscribing...');
+            log.debug('[BwcDailyForecastElement] Hass or forecastEntityId removed, unsubscribing...');
             this._unsubscribe();
             return;
         }
         // Subscribe if we now have hass and entityId but weren't subscribed (e.g., initial load)
         if (this.hass && this.forecastEntityId && !this._forecastSubscribed) {
-            log.debug('Hass and forecastEntityId available, subscribing...');
+            log.debug('[BwcDailyForecastElement] Hass and forecastEntityId available, subscribing...');
             this._subscribe();
             return;
         }
@@ -1557,7 +1562,7 @@ let BwcDailyForecastElement = class BwcDailyForecastElement extends r$2 {
             this.forecastEntityId &&
             changedProps.has('forecastEntityId') &&
             this.forecastEntityId !== oldForecastEntityId) {
-            log.debug('forecastEntityId changed, resubscribing...');
+            log.debug('[BwcDailyForecastElement] forecastEntityId changed, resubscribing...');
             this._unsubscribe();
             this._subscribe();
         }
@@ -1566,15 +1571,15 @@ let BwcDailyForecastElement = class BwcDailyForecastElement extends r$2 {
         if (!this.hass || !this.forecastEntityId) {
             return;
         }
-        log.debug(`Subscribing to daily forecast for ${this.forecastEntityId}`);
+        log.debug(`[BwcDailyForecastElement] Subscribing to daily forecast for ${this.forecastEntityId}`);
         this._forecastSubscribed = subscribeForecast(this.hass, this.forecastEntityId, 'daily', (event) => {
-            log.debug('Daily Forecast Received in Element.', event);
+            log.debug('[BwcDailyForecastElement] Daily Forecast Received in Element.', event);
             this._forecastEvent = event;
         });
     }
     _unsubscribe() {
         if (this._forecastSubscribed) {
-            log.debug(`Unsubscribing from daily forecast for ${this.forecastEntityId}`);
+            log.debug(`[BwcDailyForecastElement] Unsubscribing from daily forecast for ${this.forecastEntityId}`);
             this._forecastSubscribed.then((unsub) => unsub()).catch(() => { });
             this._forecastSubscribed = undefined;
             this._forecastEvent = undefined; // Clear data on unsubscribe
@@ -1895,40 +1900,55 @@ let SummaryElement = class SummaryElement extends r$2 {
       ${containerStyles}
 
       .summary {
-        --background-url: url(${r$5(`${backgroundsBaseUrl}/partially-cloudy.png`)});
-
         display: block;
+        color: var(--bwc-text-color);
 
-        background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
-          var(--background-url);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-blend-mode: overlay;
-        border-radius: var(--ha-card-border-radius, 12px);
-
-        /* Conditional Colors based on Day/Night and Dark/Light Theme */
-        /* Light Theme / Day Mode */
-        --bwc-text-color: var(--text-light-primary-color);
-        --bwc-text-color-inverted: var(--text-primary-color);
-        --bwc-background-color-start: var(--bwc-background-color-day-start);
-        --bwc-background-color-end: var(--bwc-background-color-day-end);
-
-        /* Light Theme / Night Mode */
-        &.night {
-          --bwc-text-color: var(--text-primary-color);
-          --bwc-text-color-inverted: var(--text-light-primary-color);
-          --bwc-background-color-start: var(--bwc-background-color-night-start);
-          --bwc-background-color-end: var(--bwc-background-color-night-end);
+        &.light-mode {
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
         }
 
-        /* Dark Theme / Day Mode */
         &.dark-mode {
-          color: var(--text-light-primary-color);
+          --bwc-text-color: var(--text-primary-color);
+          --bwc-text-color-inverted: var(--text-light-primary-color);
+        }
 
-          /* Dark Theme / Night Mode */
+        &.showConditionBackground {
+          background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
+            var(--background-url);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          background-blend-mode: overlay;
+          border-radius: var(--ha-card-border-radius, 12px);
+
+          --background-url: url(${r$5(`${backgroundsBaseUrl}/partially-cloudy.png`)});
+
+          /* Conditional Colors based on Day/Night and Dark/Light Theme */
+          /* Light Theme / Day Mode */
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
+          --bwc-background-color-start: var(--bwc-background-color-day-start);
+          --bwc-background-color-end: var(--bwc-background-color-day-end);
+
+          /* Light Theme / Night Mode */
           &.night {
-            color: var(--text-primary-color);
+            --bwc-text-color: var(--text-primary-color);
+            --bwc-text-color-inverted: var(--text-light-primary-color);
+            --bwc-background-color-start: var(--bwc-background-color-night-start);
+            --bwc-background-color-end: var(--bwc-background-color-night-end);
+          }
+
+          /* Dark Theme / Day Mode */
+          &.dark-mode {
+            --bwc-text-color: var(--text-light-primary-color);
+            --bwc-text-color-inverted: var(--text-primary-color);
+
+            /* Dark Theme / Night Mode */
+            &.night {
+              --bwc-text-color: var(--text-primary-color);
+              --bwc-text-color-inverted: var(--text-light-primary-color);
+            }
           }
         }
 
@@ -1950,9 +1970,10 @@ let SummaryElement = class SummaryElement extends r$2 {
     }
     render() {
         const showCurrentTemp = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_CURRENT_TEMP, CONFIG_PROP.CURRENT_TEMP_ENTITY_ID);
-        const showWeatherIcon = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_WEATHER_ICON, CONFIG_PROP.WEATHER_ICON_ENTITY_ID);
+        const showConditionBackground = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_CONDITION_BACKGROUND, CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID);
+        const showWeatherIcon = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_WEATHER_ICON, CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID);
         const weatherIcon = showWeatherIcon
-            ? getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])
+            ? getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID])
             : '';
         const showTime = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_TIME, CONFIG_PROP.TIME_ENTITY_ID);
         const showDate = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_DATE, CONFIG_PROP.DATE_ENTITY_ID);
@@ -1967,10 +1988,12 @@ let SummaryElement = class SummaryElement extends r$2 {
         const rainSummary = getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.RAIN_SUMMARY_ENTITY_ID]);
         const showForecastSummary = shouldRenderEntity(this.config, this.cardEntities, CONFIG_PROP.SHOW_FORECAST_SUMMARY, CONFIG_PROP.FORECAST_SUMMARY_ENTITY_ID);
         return x `<div
-      class=${classnames('summary', this.weatherClass, {
+      class=${classnames('summary', this.weatherConditionClass, {
+            showConditionBackground,
             day: this.dayMode,
             night: !this.dayMode,
             'dark-mode': this.darkMode,
+            'light-mode': !this.darkMode,
         })}
     >
       <!-- First Row (Current temp, weather icon and time/date) -->
@@ -2090,7 +2113,7 @@ __decorate([
 ], SummaryElement.prototype, "darkMode", undefined);
 __decorate([
     n$1({ type: String })
-], SummaryElement.prototype, "weatherClass", undefined);
+], SummaryElement.prototype, "weatherConditionClass", undefined);
 __decorate([
     n$1({ type: Object })
 ], SummaryElement.prototype, "weatherSummaryData", undefined);
@@ -2461,7 +2484,7 @@ async function fetchWeatherDevices(hass) {
         return devices.filter((d) => weatherDeviceIds.has(d.id));
     }
     catch (error) {
-        log.error('Error fetching weather-related devices', error);
+        log.error('[fetchWeatherDevices()] Error fetching weather-related devices', error);
         throw error;
     }
 }
@@ -2498,7 +2521,7 @@ let WeatherDevicePickerElement = class WeatherDevicePickerElement extends r$2 {
             this.weatherDevices = await fetchWeatherDevices(this.hass);
         }
         catch (e) {
-            log.error('Error fetching weather-related devices', e);
+            log.error('[WeatherDevicePickerElement] Error fetching weather-related devices', e);
         }
     }
     _handleValueChanged(event) {
@@ -2825,7 +2848,6 @@ const CONFIG_PROP_DEPENDENCIES = {
     [CONFIG_PROP.CURRENT_TEMP_ENTITY_ID]: CONFIG_PROP.SHOW_CURRENT_TEMP,
     [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: CONFIG_PROP.SHOW_CURRENT_TEMP,
     [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: CONFIG_PROP.SHOW_FEELS_LIKE_TEMP,
-    [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: CONFIG_PROP.SHOW_WEATHER_ICON,
     [CONFIG_PROP.USE_HA_WEATHER_ICONS]: CONFIG_PROP.SHOW_WEATHER_ICON,
     [CONFIG_PROP.TIME_ENTITY_ID]: CONFIG_PROP.SHOW_TIME,
     [CONFIG_PROP.SHOW_DATE]: CONFIG_PROP.DATE_ENTITY_ID,
@@ -3013,7 +3035,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     }
     async _calculateCardEntities() {
         this._cardEntities = await calculateCardEntities(this.hass, this._config);
-        log.debug('🔧 Card Entities Recalculated:', this._cardEntities);
+        log.debug('[BomWeatherCardEditor] 🔧 Card Entities Recalculated:', this._cardEntities);
     }
     _handleFieldChange(ev) {
         const target = ev.target;
@@ -3023,7 +3045,7 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
             throw new Error(this.localize('error.invalidConfigProperty', { property: targetId }));
         }
         const newValue = isElementHaSwitch(target) ? target.checked : target.value;
-        log.debug('🔧 Field Value Changed:', { targetId, newValue });
+        log.debug('[BomWeatherCardEditor] 🔧 Field Value Changed:', { targetId, newValue });
         if (newValue === this._config[targetId])
             return;
         const newConfig = { ...this._config };
@@ -3135,6 +3157,12 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
     renderSummaryOptionsPanel() {
         return x `<ha-expansion-panel .outlined=${true} header="${this.localize('editor.summary')}">
       <div class="item-group">
+        <!-- Weather Condition Entity -->
+        ${this.renderEntityPicker(CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID, this.localize('editor.weatherConditionEntity'), [], false, getCardEntityDetails(this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]).displayName)}
+
+        <!-- Show Condition Background -->
+        ${this.renderBooleanField(CONFIG_PROP.SHOW_CONDITION_BACKGROUND, this.localize('editor.showConditionBackground'))}
+
         <!-- Show Current Temperature -->
         ${this.renderBooleanField(CONFIG_PROP.SHOW_CURRENT_TEMP, this.localize('editor.showCurrentTemperature'))}
         ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
@@ -3162,8 +3190,6 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
         <!-- Weather Icon Entity -->
         ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
             ? x `<div class="item-group level-one">
-              ${this.renderEntityPicker(CONFIG_PROP.WEATHER_ICON_ENTITY_ID, this.localize('editor.weatherIconEntity'), [], false, getCardEntityDetails(this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]).displayName)}
-
               <!-- Use Default Weather Icons -->
               ${this.renderBooleanField(CONFIG_PROP.USE_HA_WEATHER_ICONS, this.localize('editor.useDefaultHaWeatherIcons'))}
             </div>`
@@ -3276,7 +3302,6 @@ let BomWeatherCardEditor = class BomWeatherCardEditor extends r$2 {
             return x ``;
         const weatherEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
         const sunEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUN_ENTITY_ID]);
-        console.log('🍷🍷', sunEntityDetails);
         return x `<div class="card-config">
       <div class="item-group">
         <!-- Title -->

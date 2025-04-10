@@ -17,8 +17,11 @@ export type CardConfig = StrictLovelaceCardConfig & {
   [CONFIG_PROP.SHOW_FEELS_LIKE_TEMP]: boolean | undefined;
   [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: string | undefined;
 
+  [CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]: string | undefined;
+
+  [CONFIG_PROP.SHOW_CONDITION_BACKGROUND]: boolean | undefined;
+
   [CONFIG_PROP.SHOW_WEATHER_ICON]: boolean | undefined;
-  [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: string | undefined;
   [CONFIG_PROP.USE_HA_WEATHER_ICONS]: boolean | undefined;
 
   [CONFIG_PROP.SHOW_TIME]: boolean | undefined;

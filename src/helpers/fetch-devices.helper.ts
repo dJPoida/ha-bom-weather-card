@@ -7,13 +7,11 @@ import {HassDeviceRegistryEntry} from '../types/hass-device-registry-entry.type'
  * @param hass
  * @returns
  */
-export async function fetchDevices(
-  hass: HomeAssistant
-): Promise<HassDeviceRegistryEntry[]> {
+export async function fetchDevices(hass: HomeAssistant): Promise<HassDeviceRegistryEntry[]> {
   try {
     return await hass.callWS({type: 'config/device_registry/list'});
   } catch (error) {
-    log.error('Error fetching devices', error);
+    log.error('[fetchDevices()] Error fetching devices', error);
     return [];
   }
 }

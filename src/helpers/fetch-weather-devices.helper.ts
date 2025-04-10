@@ -6,9 +6,7 @@ import {HassEntityRegistryEntry} from '../types/hass-entity-registry.type';
 import {fetchDevices} from './fetch-devices.helper';
 import {fetchEntities} from './fetch-entities.helper';
 
-export async function fetchWeatherDevices(
-  hass: HomeAssistant
-): Promise<HassDeviceRegistryEntry[]> {
+export async function fetchWeatherDevices(hass: HomeAssistant): Promise<HassDeviceRegistryEntry[]> {
   let devices: HassDeviceRegistryEntry[] = [];
   let entities: HassEntityRegistryEntry[] = [];
   const weatherDeviceIds = new Set<string>();
@@ -36,7 +34,7 @@ export async function fetchWeatherDevices(
     // Filter only devices that have at least one weather-related entity
     return devices.filter((d) => weatherDeviceIds.has(d.id));
   } catch (error) {
-    log.error('Error fetching weather-related devices', error);
+    log.error('[fetchWeatherDevices()] Error fetching weather-related devices', error);
     throw error;
   }
 }

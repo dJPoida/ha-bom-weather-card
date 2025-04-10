@@ -26,6 +26,7 @@
     "rainSummaryEntity": "Rain Summary Entity",
     "required": "Required",
     "showCurrentTemperature": "Show Current Temperature",
+    "showConditionBackground": "Show Condition Background",
     "showDailyForecast": "Show Daily Forecast",
     "showDailyForecastTitle": "Show Daily Forecast Title",
     "showDate": "Show Date",
@@ -45,7 +46,7 @@
     "useDefaultHaWeatherIcons": "Use Default HA Weather Icons",
     "warningsCountEntity": "Warnings Count Entity",
     "weatherDevice": "Weather Device",
-    "weatherIconEntity": "Weather Icon Entity"
+    "weatherConditionEntity": "Weather Condition Entity"
   },
   "error": {
     "invalidConfigProperty": "Invalid config property: {property}",

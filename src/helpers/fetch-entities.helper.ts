@@ -26,15 +26,12 @@ export async function fetchEntities(
     });
 
     if (params?.device_id) {
-      return registeredEntities.filter(
-        (entity: HassEntityRegistryEntry) =>
-          entity.device_id === params.device_id
-      );
+      return registeredEntities.filter((entity: HassEntityRegistryEntry) => entity.device_id === params.device_id);
     }
 
     return registeredEntities;
   } catch (error) {
-    log.error('Error fetching entities', error);
+    log.error('[fetchEntities()] Error fetching entities', error);
     return [];
   }
 }

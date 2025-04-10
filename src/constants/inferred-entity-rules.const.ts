@@ -46,7 +46,7 @@ export const INFERRED_ENTITY_RULES: Record<A_CARD_ENTITY, InferredEntityRule> = 
   [CONFIG_PROP.FEELS_LIKE_TEMP_ENTITY_ID]: {},
 
   // Infer the weather icon entity from the device name "weather.%device_name%"
-  [CONFIG_PROP.WEATHER_ICON_ENTITY_ID]: {
+  [CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]: {
     idPattern: {
       parentDeviceConfigProp: CONFIG_PROP.WEATHER_DEVICE_ID,
       pattern: 'weather.%device_name%',

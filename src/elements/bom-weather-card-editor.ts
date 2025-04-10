@@ -127,7 +127,7 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
   private async _calculateCardEntities(): Promise<void> {
     this._cardEntities = await calculateCardEntities(this.hass, this._config);
 
-    log.debug('🔧 Card Entities Recalculated:', this._cardEntities);
+    log.debug('[BomWeatherCardEditor] 🔧 Card Entities Recalculated:', this._cardEntities);
   }
 
   _handleFieldChange(ev: Event | CustomEvent) {
@@ -141,7 +141,7 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
 
     const newValue: string | boolean | undefined = isElementHaSwitch(target) ? target.checked : target.value;
 
-    log.debug('🔧 Field Value Changed:', {targetId, newValue});
+    log.debug('[BomWeatherCardEditor] 🔧 Field Value Changed:', {targetId, newValue});
 
     if (newValue === this._config[targetId]) return;
 
@@ -288,6 +288,21 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
   renderSummaryOptionsPanel(): TemplateResult {
     return html`<ha-expansion-panel .outlined=${true} header="${this.localize('editor.summary')}">
       <div class="item-group">
+        <!-- Weather Condition Entity -->
+        ${this.renderEntityPicker(
+          CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID,
+          this.localize('editor.weatherConditionEntity'),
+          [],
+          false,
+          getCardEntityDetails(this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]).displayName
+        )}
+
+        <!-- Show Condition Background -->
+        ${this.renderBooleanField(
+          CONFIG_PROP.SHOW_CONDITION_BACKGROUND,
+          this.localize('editor.showConditionBackground')
+        )}
+
         <!-- Show Current Temperature -->
         ${this.renderBooleanField(CONFIG_PROP.SHOW_CURRENT_TEMP, this.localize('editor.showCurrentTemperature'))}
         ${this._config[CONFIG_PROP.SHOW_CURRENT_TEMP]
@@ -330,14 +345,6 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
         <!-- Weather Icon Entity -->
         ${this._config[CONFIG_PROP.SHOW_WEATHER_ICON]
           ? html`<div class="item-group level-one">
-              ${this.renderEntityPicker(
-                CONFIG_PROP.WEATHER_ICON_ENTITY_ID,
-                this.localize('editor.weatherIconEntity'),
-                [],
-                false,
-                getCardEntityDetails(this._cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID]).displayName
-              )}
-
               <!-- Use Default Weather Icons -->
               ${this.renderBooleanField(
                 CONFIG_PROP.USE_HA_WEATHER_ICONS,
@@ -511,8 +518,6 @@ export class BomWeatherCardEditor extends LitElement implements LovelaceCardEdit
 
     const weatherEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]);
     const sunEntityDetails = getCardEntityDetails(this._cardEntities[CONFIG_PROP.SUN_ENTITY_ID]);
-
-    console.log('🍷🍷', sunEntityDetails);
 
     return html`<div class="card-config">
       <div class="item-group">

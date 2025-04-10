@@ -33,7 +33,7 @@ export class BomWeatherCard extends LitElement {
   @state() _config: CardConfig = {...DEFAULT_CARD_CONFIG};
   @state() _cardEntities: CardEntities = {} as CardEntities;
 
-  @state() _weatherClass: string = '';
+  @state() _weatherConditionClass: string = '';
 
   @state() _weatherSummaryData: WeatherSummaryData | undefined;
 
@@ -58,6 +58,11 @@ export class BomWeatherCard extends LitElement {
           --bwc-text-color: var(--text-light-primary-color);
           --bwc-text-color-inverted: var(--text-primary-color);
         }
+
+        &.dark-mode {
+          --bwc-text-color: var(--text-primary-color);
+          --bwc-text-color-inverted: var(--text-light-primary-color);
+        }
       }
 
       h1.card-header {
@@ -80,24 +85,26 @@ export class BomWeatherCard extends LitElement {
       throw new Error(this.localize('error.invalidConfigProperty'));
     }
     this._config = {...this._config, ...config};
-    // Pass the config to CardState
     this._cardState.setConfig(this._config);
   }
 
   private async _calculateCardEntities(): Promise<void> {
     this._cardEntities = await calculateCardEntities(this.hass, this._config);
 
-    log.debug('Card Entities Recalculated:', this._cardEntities);
+    log.debug('[BomWeatherCard] Card Entities Recalculated:', this._cardEntities);
   }
 
-  private async _calculateWeatherClass(): Promise<void> {
+  private async _calculateWeatherConditionClass(): Promise<void> {
     const currentCondition = getCardEntityValueAsString(
       this.hass,
-      this._cardEntities[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID]
+      this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]
     ) as A_WEATHER_CONDITION;
-    this._weatherClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
+    this._weatherConditionClass = WEATHER_CONDITION_CLASSES[currentCondition] || '';
 
-    log.debug('Weather class recalculated:', {condition: currentCondition, weatherClass: this._weatherClass});
+    log.debug('[BomWeatherCard] Weather Condition Class recalculated:', {
+      condition: currentCondition,
+      weatherConditionClass: this._weatherConditionClass,
+    });
   }
 
   private _calculateMinHeight(): string {
@@ -107,7 +114,7 @@ export class BomWeatherCard extends LitElement {
       totalHeight += ESTIMATED_TITLE_HEIGHT;
     }
     totalHeight += ESTIMATED_BASE_PADDING_HEIGHT;
-    log.debug(`Calculated min-height: ${totalHeight}em`);
+    log.debug(`[BomWeatherCard] Calculated min-height: ${totalHeight}em`);
     return `${totalHeight}em`;
   }
 
@@ -120,41 +127,33 @@ export class BomWeatherCard extends LitElement {
       }
     });
     if (hasNonHassChanges) {
-      log.debug('shouldUpdate: true (non-hass property changed)');
+      log.debug('[BomWeatherCard] shouldUpdate: true (non-hass property changed)');
       return true;
     }
 
-    log.debug('[BomWeatherCard] shouldUpdate evaluating hass change');
+    log.debug('[BomWeatherCard] shouldUpdate: evaluating hass change');
     // If only 'hass' changed, perform a deeper comparison
     if (changedProperties.has('hass')) {
-      // === Update CardState first ===
       const cardStateChanged = this._cardState.updateHass(this.hass);
-      // ==============================
 
       const oldHass = changedProperties.get('hass') as HomeAssistant | undefined;
       log.debug('[BomWeatherCard] shouldUpdate: hass changed', {hasOldHass: !!oldHass});
 
       // On first load, oldHass will be undefined, allow update
       if (!oldHass) {
-        log.debug('shouldUpdate: true (initial hass set)');
-        // No need to call updateHass again, already called above
-        // this._cardState.updateHass(this.hass);
+        log.debug('[BomWeatherCard] shouldUpdate: true (initial hass set)');
         return true;
       }
 
-      // Pass hass to CardState - No longer needed here, handled in updateHass call
-      // this._cardState.hass = this.hass;
-
       // 1. Check if CardState detected relevant changes (result captured above)
-      // const cardStateChanged = this._cardState.updateHass(this.hass);
       if (cardStateChanged) {
-        log.debug('shouldUpdate: true (CardState detected changes)');
+        log.debug('[BomWeatherCard] shouldUpdate: true (CardState detected changes)');
         return true;
       }
 
       // 2. Check locale language
       if (oldHass.locale?.language !== this.hass!.locale?.language) {
-        log.debug('shouldUpdate: true (locale changed)');
+        log.debug('[BomWeatherCard] shouldUpdate: true (locale changed)');
         return true;
       }
 
@@ -169,13 +168,13 @@ export class BomWeatherCard extends LitElement {
           }
         }
       }
+
       // Also check the main weather entity
       const weatherEntity = this._config[CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID];
       if (typeof weatherEntity === 'string' && weatherEntity.includes('.')) {
         relevantEntityIds.add(weatherEntity);
       }
-      // Ensure sun.sun is included for day/night check - Handled by CardState
-      // relevantEntityIds.add('sun.sun');
+
       // Add the configured sun entity ID to relevant entities
       const sunEntityId = this._cardState['_sunEntityId']; // Access private member for shouldUpdate logic
       if (sunEntityId) {
@@ -184,18 +183,18 @@ export class BomWeatherCard extends LitElement {
 
       for (const entityId of relevantEntityIds) {
         if (oldHass.states[entityId] !== this.hass!.states[entityId]) {
-          log.debug(`shouldUpdate: true (state changed for ${entityId})`);
+          log.debug(`[BomWeatherCard] shouldUpdate: true (state changed for ${entityId})`);
           return true;
         }
       }
 
       // If none of the relevant parts changed, skip the update
-      log.debug('shouldUpdate: false (only non-relevant hass changes detected)');
+      log.debug('[BomWeatherCard] shouldUpdate: false (only non-relevant hass changes detected)');
       return false;
     }
 
     // Default fallback (should not happen if logic is correct)
-    log.debug('shouldUpdate: true (default fallback)');
+    log.debug('[BomWeatherCard] shouldUpdate: true (default fallback)');
     return true;
   }
 
@@ -206,38 +205,41 @@ export class BomWeatherCard extends LitElement {
     if (this.hass) {
       log.debug('[BomWeatherCard] firstUpdated: Initializing CardState with hass.');
       this._cardState.updateHass(this.hass);
-      this.requestUpdate(); // Ensure render is re-evaluated now that CardState has hass
+      this.requestUpdate();
     }
 
-    const initTasks = [this._calculateCardEntities, this._calculateWeatherClass];
+    const initTasks = [this._calculateCardEntities, this._calculateWeatherConditionClass];
 
     Promise.all(initTasks.map((task) => task.bind(this)())).finally(() => {
-      log.debug('Initialization tasks complete.');
+      log.debug('[BomWeatherCard] Initialization tasks complete.');
     });
   }
 
   protected override updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
-    log.debug('updated():', changedProps);
+    log.debug('[BomWeatherCard] updated():', changedProps);
 
-    const entityIdKey = CONFIG_PROP.SUMMARY_WEATHER_ENTITY_ID;
-
-    // Update CardState hass if hass changed - No longer needed, hass passed via shouldUpdate/updateHass
-    // if (changedProps.has('hass')) {
-    //   this._cardState.hass = this.hass;
-    // }
-
-    // Original logic for entity calculation on config change (can stay)
     if (changedProps.has('_config')) {
-      log.debug('config changed', this._config);
-      this._calculateCardEntities(); // Recalculate entities if any config changed
+      log.debug('[BomWeatherCard] config changed', this._config);
+      this._calculateCardEntities();
     }
 
-    // Update the weather class that is assigned to the card
-    if (changedProps.has('_cardEntities')) {
+    // When either the Card Entity for the weather condition or the hass state for the assigned entity changes,
+    // Update the weather condition class that is assigned to the card
+    if (changedProps.has('_cardEntities') || changedProps.has('hass')) {
       const oldCardEntities = changedProps.get('_cardEntities') as CardEntities | undefined;
-      if (oldCardEntities?.[entityIdKey] !== this._cardEntities[entityIdKey]) {
-        this._calculateWeatherClass();
+      const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
+      if (
+        // Entity ID for the weather condition has changed
+        oldCardEntities?.[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID] !==
+          this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID] ||
+        // State for the weather condition has changed
+        (this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID]?.entity_id &&
+          oldHass?.states[this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID].entity_id!] !==
+            this.hass?.states[this._cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID].entity_id!])
+      ) {
+        log.debug('[BomWeatherCard] Weather condition changed', this._config);
+        this._calculateWeatherConditionClass();
       }
     }
 
@@ -251,17 +253,17 @@ export class BomWeatherCard extends LitElement {
   }
 
   public override connectedCallback() {
-    log.debug('✅ connected to DOM');
+    log.debug('[BomWeatherCard] ✅ connected to DOM');
     super.connectedCallback();
   }
 
   public override disconnectedCallback(): void {
-    log.debug('❌ disconnected from DOM');
+    log.debug('[BomWeatherCard] ❌ disconnected from DOM');
     super.disconnectedCallback();
   }
 
   public override render() {
-    log.debug('🖼️ [BomWeatherCard] Rendering card...');
+    log.debug('[BomWeatherCard] 🖼️ Rendering card...');
 
     // Don't render until CardState has received hass
     if (!this._cardState.hasHass) {
@@ -272,7 +274,7 @@ export class BomWeatherCard extends LitElement {
     log.debug('[BomWeatherCard] State for render:', {
       darkMode: this._cardState.darkMode,
       dayMode: this._cardState.dayMode,
-      weatherClass: this._weatherClass,
+      weatherConditionClass: this._weatherConditionClass,
       hass: this.hass,
       config: this._config,
     });
@@ -285,8 +287,8 @@ export class BomWeatherCard extends LitElement {
     };
 
     // Conditionally add weather class if it exists
-    if (this._weatherClass) {
-      cardClasses[this._weatherClass] = true;
+    if (this._weatherConditionClass) {
+      cardClasses[this._weatherConditionClass] = true;
     }
 
     const cardStyles = {
@@ -305,7 +307,7 @@ export class BomWeatherCard extends LitElement {
         .localize=${this.localize}
         .dayMode=${this._cardState.dayMode}
         .darkMode=${this._cardState.darkMode}
-        .weatherClass=${this._weatherClass}
+        .weatherConditionClass=${this._weatherConditionClass}
         .weatherSummaryData=${this._weatherSummaryData}
       ></bwc-summary-element>
 

@@ -23,7 +23,7 @@ export class SummaryElement extends LitElement {
   @property({type: Object}) public localize!: Localizer;
   @property({type: Boolean}) public dayMode!: boolean;
   @property({type: Boolean}) public darkMode!: boolean;
-  @property({type: String}) public weatherClass!: string;
+  @property({type: String}) public weatherConditionClass!: string;
   @property({type: Object}) public weatherSummaryData!: WeatherSummaryData | undefined;
 
   static override get styles(): CSSResultGroup {
@@ -35,40 +35,55 @@ export class SummaryElement extends LitElement {
       ${containerStyles}
 
       .summary {
-        --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
-
         display: block;
+        color: var(--bwc-text-color);
 
-        background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
-          var(--background-url);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-blend-mode: overlay;
-        border-radius: var(--ha-card-border-radius, 12px);
-
-        /* Conditional Colors based on Day/Night and Dark/Light Theme */
-        /* Light Theme / Day Mode */
-        --bwc-text-color: var(--text-light-primary-color);
-        --bwc-text-color-inverted: var(--text-primary-color);
-        --bwc-background-color-start: var(--bwc-background-color-day-start);
-        --bwc-background-color-end: var(--bwc-background-color-day-end);
-
-        /* Light Theme / Night Mode */
-        &.night {
-          --bwc-text-color: var(--text-primary-color);
-          --bwc-text-color-inverted: var(--text-light-primary-color);
-          --bwc-background-color-start: var(--bwc-background-color-night-start);
-          --bwc-background-color-end: var(--bwc-background-color-night-end);
+        &.light-mode {
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
         }
 
-        /* Dark Theme / Day Mode */
         &.dark-mode {
-          color: var(--text-light-primary-color);
+          --bwc-text-color: var(--text-primary-color);
+          --bwc-text-color-inverted: var(--text-light-primary-color);
+        }
 
-          /* Dark Theme / Night Mode */
+        &.showConditionBackground {
+          background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
+            var(--background-url);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          background-blend-mode: overlay;
+          border-radius: var(--ha-card-border-radius, 12px);
+
+          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
+
+          /* Conditional Colors based on Day/Night and Dark/Light Theme */
+          /* Light Theme / Day Mode */
+          --bwc-text-color: var(--text-light-primary-color);
+          --bwc-text-color-inverted: var(--text-primary-color);
+          --bwc-background-color-start: var(--bwc-background-color-day-start);
+          --bwc-background-color-end: var(--bwc-background-color-day-end);
+
+          /* Light Theme / Night Mode */
           &.night {
-            color: var(--text-primary-color);
+            --bwc-text-color: var(--text-primary-color);
+            --bwc-text-color-inverted: var(--text-light-primary-color);
+            --bwc-background-color-start: var(--bwc-background-color-night-start);
+            --bwc-background-color-end: var(--bwc-background-color-night-end);
+          }
+
+          /* Dark Theme / Day Mode */
+          &.dark-mode {
+            --bwc-text-color: var(--text-light-primary-color);
+            --bwc-text-color-inverted: var(--text-primary-color);
+
+            /* Dark Theme / Night Mode */
+            &.night {
+              --bwc-text-color: var(--text-primary-color);
+              --bwc-text-color-inverted: var(--text-light-primary-color);
+            }
           }
         }
 
@@ -97,14 +112,21 @@ export class SummaryElement extends LitElement {
       CONFIG_PROP.CURRENT_TEMP_ENTITY_ID
     );
 
+    const showConditionBackground = shouldRenderEntity(
+      this.config,
+      this.cardEntities,
+      CONFIG_PROP.SHOW_CONDITION_BACKGROUND,
+      CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID
+    );
+
     const showWeatherIcon = shouldRenderEntity(
       this.config,
       this.cardEntities,
       CONFIG_PROP.SHOW_WEATHER_ICON,
-      CONFIG_PROP.WEATHER_ICON_ENTITY_ID
+      CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID
     );
     const weatherIcon = showWeatherIcon
-      ? getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.WEATHER_ICON_ENTITY_ID])
+      ? getCardEntityValueAsString(this.hass, this.cardEntities[CONFIG_PROP.WEATHER_CONDITION_ENTITY_ID])
       : '';
 
     const showTime = shouldRenderEntity(
@@ -169,10 +191,12 @@ export class SummaryElement extends LitElement {
     );
 
     return html`<div
-      class=${classNames('summary', this.weatherClass, {
+      class=${classNames('summary', this.weatherConditionClass, {
+        showConditionBackground,
         day: this.dayMode,
         night: !this.dayMode,
         'dark-mode': this.darkMode,
+        'light-mode': !this.darkMode,
       })}
     >
       <!-- First Row (Current temp, weather icon and time/date) -->

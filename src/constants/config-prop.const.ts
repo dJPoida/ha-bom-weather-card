@@ -10,8 +10,11 @@ export const CONFIG_PROP = {
   SHOW_FEELS_LIKE_TEMP: 'show_feels_like_temp',
   FEELS_LIKE_TEMP_ENTITY_ID: 'feels_like_temp_entity_id',
 
+  WEATHER_CONDITION_ENTITY_ID: 'weather_condition_entity_id',
+
+  SHOW_CONDITION_BACKGROUND: 'show_condition_background',
+
   SHOW_WEATHER_ICON: 'show_weather_icon',
-  WEATHER_ICON_ENTITY_ID: 'weather_icon_entity_id',
   USE_HA_WEATHER_ICONS: 'use_ha_weather_icons',
 
   SUN_ENTITY_ID: 'sun_entity_id',

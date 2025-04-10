@@ -42,7 +42,7 @@ export class WeatherDevicePickerElement extends LitElement {
     try {
       this.weatherDevices = await fetchWeatherDevices(this.hass);
     } catch (e) {
-      log.error('Error fetching weather-related devices', e);
+      log.error('[WeatherDevicePickerElement] Error fetching weather-related devices', e);
     }
   }
 

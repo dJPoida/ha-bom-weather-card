@@ -117,14 +117,14 @@ export class BwcDailyForecastElement extends LitElement {
 
     // Unsubscribe if hass or entityId are removed
     if ((!this.hass || !this.forecastEntityId) && this._forecastSubscribed) {
-      log.debug('Hass or forecastEntityId removed, unsubscribing...');
+      log.debug('[BwcDailyForecastElement] Hass or forecastEntityId removed, unsubscribing...');
       this._unsubscribe();
       return;
     }
 
     // Subscribe if we now have hass and entityId but weren't subscribed (e.g., initial load)
     if (this.hass && this.forecastEntityId && !this._forecastSubscribed) {
-      log.debug('Hass and forecastEntityId available, subscribing...');
+      log.debug('[BwcDailyForecastElement] Hass and forecastEntityId available, subscribing...');
       this._subscribe();
       return;
     }
@@ -136,7 +136,7 @@ export class BwcDailyForecastElement extends LitElement {
       changedProps.has('forecastEntityId') &&
       this.forecastEntityId !== oldForecastEntityId
     ) {
-      log.debug('forecastEntityId changed, resubscribing...');
+      log.debug('[BwcDailyForecastElement] forecastEntityId changed, resubscribing...');
       this._unsubscribe();
       this._subscribe();
     }
@@ -146,16 +146,16 @@ export class BwcDailyForecastElement extends LitElement {
     if (!this.hass || !this.forecastEntityId) {
       return;
     }
-    log.debug(`Subscribing to daily forecast for ${this.forecastEntityId}`);
+    log.debug(`[BwcDailyForecastElement] Subscribing to daily forecast for ${this.forecastEntityId}`);
     this._forecastSubscribed = subscribeForecast(this.hass!, this.forecastEntityId, 'daily', (event) => {
-      log.debug('Daily Forecast Received in Element.', event);
+      log.debug('[BwcDailyForecastElement] Daily Forecast Received in Element.', event);
       this._forecastEvent = event;
     });
   }
 
   private _unsubscribe(): void {
     if (this._forecastSubscribed) {
-      log.debug(`Unsubscribing from daily forecast for ${this.forecastEntityId}`);
+      log.debug(`[BwcDailyForecastElement] Unsubscribing from daily forecast for ${this.forecastEntityId}`);
       this._forecastSubscribed.then((unsub) => unsub()).catch(() => {});
       this._forecastSubscribed = undefined;
       this._forecastEvent = undefined; // Clear data on unsubscribe

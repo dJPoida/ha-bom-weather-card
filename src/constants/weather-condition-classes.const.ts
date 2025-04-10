@@ -2,9 +2,9 @@ import {WEATHER_CONDITION} from './weather-conditions.const';
 
 export const WEATHER_CONDITION_CLASSES: Record<string, string> = {
   [WEATHER_CONDITION.SUNNY]: 'clear',
-  [WEATHER_CONDITION.CLEAR_NIGHT]: 'clear night',
+  [WEATHER_CONDITION.CLEAR_NIGHT]: 'clear',
   [WEATHER_CONDITION.PARTLY_CLOUDY]: 'partially-cloudy',
-  [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy night',
+  [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy',
   [WEATHER_CONDITION.MOSTLY_SUNNY]: 'partially-cloudy',
   [WEATHER_CONDITION.CLOUDY]: 'cloudy',
   [WEATHER_CONDITION.LIGHTNING]: 'stormy',

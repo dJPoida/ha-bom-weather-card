@@ -206,7 +206,7 @@ All of the rules are defined in [inferred-entity-rules.const.ts](./src/constants
 - Summary Weather Entity -> `summary_weather_entity_id` -> `weather.%device_name%`
 - Current Temp -> `current_temp_entity_id` -> `summary_weather_entity[attribute: temperature]`
 - Feels Like Temp -> `feels_like_temp_entity_id`
-- Weather Icon -> `weather_icon_entity_id` -> `weather.%device_name%`
+- Weather Condition -> `weather_condition_entity_id` -> `weather.%device_name%`
 - Sun -> `sun_entity_id` -> `sun.sun`
 - Time -> `time_entity_id` -> `sensor.time`
 - Date -> `date_entity_id` -> `sensor.date`

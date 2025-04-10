@@ -19,16 +19,39 @@ browser_mod:
 
 input_select:
   test_sun_state:
-    name: Test Sun State
+    name: Test Sun State Input Select
     options:
       - above_horizon
       - below_horizon
     initial: above_horizon
-    icon: mdi:white-balance-sunny
+    icon: mdi:form-select
+  test_weather_condition:
+    name: Test Weather Condition Input Select
+    options:
+      - clear-night
+      - cloudy
+      - exceptional
+      - fog
+      - hail
+      - lightning-rainy
+      - lightning
+      - partlycloudy
+      - partlycloudy-night
+      - mostly-sunny
+      - pouring
+      - rainy
+      - snowy-rainy
+      - snowy
+      - sunny
+      - windy-variant
+      - windy
+    initial: sunny
+    icon: mdi:form-select
 
 template:
   - sensor:
       - name: 'Test Sun'
+        icon: mdi:theme-light-dark
         state: "{{ states('input_select.test_sun_state') }}"
         attributes:
           next_dawn: "{{ state_attr('sun.sun', 'next_dawn') }}"
@@ -40,3 +63,6 @@ template:
           elevation: "{{ state_attr('sun.sun', 'elevation') }}"
           azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
           rising: "{{ state_attr('sun.sun', 'rising') }}"
+      - name: 'Test Weather Condition'
+        icon: mdi:weather-partly-cloudy
+        state: "{{ states('input_select.test_weather_condition') }}"
