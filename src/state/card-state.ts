@@ -10,7 +10,6 @@ interface HassThemesWithDarkMode {
 
 export class CardState {
   private _hass: HomeAssistant | null = null;
-  private _previousHass: HomeAssistant | null = null; // Store previous hass state
   private _sunEntityId: string = 'sun.sun'; // Default sun entity
 
   constructor() {
@@ -38,7 +37,6 @@ export class CardState {
     }
 
     const oldHass = this._hass; // Use the current _hass as the old state for comparison
-    this._previousHass = oldHass; // Store the state *before* this update
     this._hass = newHass; // Update internal state to the new one
 
     if (!oldHass) {

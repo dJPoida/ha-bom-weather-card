@@ -37,6 +37,9 @@ export class SummaryElement extends LitElement {
       .summary {
         display: block;
         color: var(--bwc-text-color);
+        --background-url: ${unsafeCSS(
+          `url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=)`
+        )};
 
         &.light-mode {
           --bwc-text-color: var(--text-light-primary-color);
@@ -49,15 +52,17 @@ export class SummaryElement extends LitElement {
         }
 
         &.show-condition-background {
-          background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
+          background-image: linear-gradient(
+              to bottom,
+              var(--bwc-background-color-start),
+              var(--bwc-background-color-end)
+            ),
             var(--background-url);
           background-position: center;
           background-repeat: no-repeat;
           background-size: cover;
           background-blend-mode: overlay;
           border-radius: var(--ha-card-border-radius, 12px);
-
-          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partially-cloudy.png`)});
 
           /* Conditional Colors based on Day/Night and Dark/Light Theme */
           /* Light Theme / Day Mode */
@@ -85,20 +90,52 @@ export class SummaryElement extends LitElement {
               --bwc-text-color-inverted: var(--text-light-primary-color);
             }
           }
-        }
 
-        /* Cloudy (TODO: dark-mode background) */
-        &.cloudy {
-          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/cloudy.png`)});
-          --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
-          --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
-        }
+          &.clear {
+            &.night {
+              --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/clear-night.png`)});
+            }
+          }
 
-        /* Stormy (same in dark mode) */
-        &.stormy {
-          --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/stormy.png`)});
-          --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
-          --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
+          &.partly-cloudy {
+            &.day {
+              --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partly-cloudy.png`)});
+            }
+            &.night {
+              --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/partly-cloudy.png`)});
+            }
+          }
+
+          /* Cloudy (TODO: dark-mode background) */
+          &.cloudy {
+            --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/cloudy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
+            --bwc-text-color: var(--text-light-primary-color);
+            --bwc-text-color-inverted: var(--text-primary-color);
+
+            &.dark-mode.night {
+              --bwc-text-color: var(--text-light-primary-color);
+              --bwc-text-color-inverted: var(--text-primary-color);
+            }
+          }
+
+          /* Stormy (same in dark mode) */
+          &.stormy {
+            --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/stormy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
+          }
+
+          &.windy {
+            --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/windy.png`)});
+          }
+
+          &.windy-variant {
+            --background-url: url(${unsafeCSS(`${backgroundsBaseUrl}/windy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
+          }
         }
       }
     `;

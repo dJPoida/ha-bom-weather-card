@@ -372,7 +372,7 @@ function requireLoglevel () {
 var loglevelExports = requireLoglevel();
 var log = /*@__PURE__*/getDefaultExportFromCjs(loglevelExports);
 
-var version = "0.0.1790";
+var version = "0.0.1840";
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -577,21 +577,21 @@ const WEATHER_CONDITION = {
 const WEATHER_CONDITION_CLASSES = {
     [WEATHER_CONDITION.SUNNY]: 'clear',
     [WEATHER_CONDITION.CLEAR_NIGHT]: 'clear',
-    [WEATHER_CONDITION.PARTLY_CLOUDY]: 'partially-cloudy',
-    [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partially-cloudy',
-    [WEATHER_CONDITION.MOSTLY_SUNNY]: 'partially-cloudy',
+    [WEATHER_CONDITION.PARTLY_CLOUDY]: 'partly-cloudy',
+    [WEATHER_CONDITION.PARTLY_CLOUDY_NIGHT]: 'partly-cloudy',
+    [WEATHER_CONDITION.MOSTLY_SUNNY]: 'partly-cloudy',
     [WEATHER_CONDITION.CLOUDY]: 'cloudy',
     [WEATHER_CONDITION.LIGHTNING]: 'stormy',
     [WEATHER_CONDITION.LIGHTNING_RAINY]: 'stormy',
-    [WEATHER_CONDITION.POURING]: 'clear', // TODO: classes for weather condition POURING
-    [WEATHER_CONDITION.RAINY]: 'clear', // TODO: classes for weather condition RAINY
-    [WEATHER_CONDITION.SNOWY]: 'clear', // TODO: classes for weather condition SNOWY
-    [WEATHER_CONDITION.SNOWY_RAINY]: 'clear', // TODO: classes for weather condition SNOWY_RAINY
-    [WEATHER_CONDITION.WINDY]: 'clear', // TODO: classes for weather condition WINDY
-    [WEATHER_CONDITION.WINDY_VARIANT]: 'clear', // TODO: classes for weather condition WINDY_VARIANT
-    [WEATHER_CONDITION.FOG]: 'clear', // TODO: classes for weather condition FOG
-    [WEATHER_CONDITION.HAIL]: 'clear', // TODO: classes for weather condition HAIL
-    [WEATHER_CONDITION.EXCEPTIONAL]: 'clear', // TODO: classes for weather condition EXCEPTIONAL
+    [WEATHER_CONDITION.POURING]: 'rainy',
+    [WEATHER_CONDITION.RAINY]: 'rainy',
+    [WEATHER_CONDITION.SNOWY]: 'snowy',
+    [WEATHER_CONDITION.SNOWY_RAINY]: 'snowy',
+    [WEATHER_CONDITION.WINDY]: 'windy',
+    [WEATHER_CONDITION.WINDY_VARIANT]: 'windy-variant',
+    [WEATHER_CONDITION.FOG]: 'foggy',
+    [WEATHER_CONDITION.HAIL]: 'rainy',
+    [WEATHER_CONDITION.EXCEPTIONAL]: 'windy',
 };
 
 /**
@@ -1023,7 +1023,6 @@ function getLocalizer(lang = DEFAULT_LANGUAGE) {
 class CardState {
     constructor() {
         this._hass = null;
-        this._previousHass = null; // Store previous hass state
         this._sunEntityId = 'sun.sun'; // Default sun entity
         // Initial setup if needed
     }
@@ -1046,7 +1045,6 @@ class CardState {
             return false; // No new state to process
         }
         const oldHass = this._hass; // Use the current _hass as the old state for comparison
-        this._previousHass = oldHass; // Store the state *before* this update
         this._hass = newHass; // Update internal state to the new one
         if (!oldHass) {
             return true; // Always update on the first run when oldHass was null
@@ -1902,6 +1900,7 @@ let SummaryElement = class SummaryElement extends r$2 {
       .summary {
         display: block;
         color: var(--bwc-text-color);
+        --background-url: ${r$5(`url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=)`)};
 
         &.light-mode {
           --bwc-text-color: var(--text-light-primary-color);
@@ -1914,15 +1913,17 @@ let SummaryElement = class SummaryElement extends r$2 {
         }
 
         &.show-condition-background {
-          background: linear-gradient(to bottom, var(--bwc-background-color-start), var(--bwc-background-color-end)),
+          background-image: linear-gradient(
+              to bottom,
+              var(--bwc-background-color-start),
+              var(--bwc-background-color-end)
+            ),
             var(--background-url);
           background-position: center;
           background-repeat: no-repeat;
           background-size: cover;
           background-blend-mode: overlay;
           border-radius: var(--ha-card-border-radius, 12px);
-
-          --background-url: url(${r$5(`${backgroundsBaseUrl}/partially-cloudy.png`)});
 
           /* Conditional Colors based on Day/Night and Dark/Light Theme */
           /* Light Theme / Day Mode */
@@ -1950,20 +1951,52 @@ let SummaryElement = class SummaryElement extends r$2 {
               --bwc-text-color-inverted: var(--text-light-primary-color);
             }
           }
-        }
 
-        /* Cloudy (TODO: dark-mode background) */
-        &.cloudy {
-          --background-url: url(${r$5(`${backgroundsBaseUrl}/cloudy.png`)});
-          --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
-          --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
-        }
+          &.clear {
+            &.night {
+              --background-url: url(${r$5(`${backgroundsBaseUrl}/clear-night.png`)});
+            }
+          }
 
-        /* Stormy (same in dark mode) */
-        &.stormy {
-          --background-url: url(${r$5(`${backgroundsBaseUrl}/stormy.png`)});
-          --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
-          --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
+          &.partly-cloudy {
+            &.day {
+              --background-url: url(${r$5(`${backgroundsBaseUrl}/partly-cloudy.png`)});
+            }
+            &.night {
+              --background-url: url(${r$5(`${backgroundsBaseUrl}/partly-cloudy.png`)});
+            }
+          }
+
+          /* Cloudy (TODO: dark-mode background) */
+          &.cloudy {
+            --background-url: url(${r$5(`${backgroundsBaseUrl}/cloudy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
+            --bwc-text-color: var(--text-light-primary-color);
+            --bwc-text-color-inverted: var(--text-primary-color);
+
+            &.dark-mode.night {
+              --bwc-text-color: var(--text-light-primary-color);
+              --bwc-text-color-inverted: var(--text-primary-color);
+            }
+          }
+
+          /* Stormy (same in dark mode) */
+          &.stormy {
+            --background-url: url(${r$5(`${backgroundsBaseUrl}/stormy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-stormy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-stormy-end);
+          }
+
+          &.windy {
+            --background-url: url(${r$5(`${backgroundsBaseUrl}/windy.png`)});
+          }
+
+          &.windy-variant {
+            --background-url: url(${r$5(`${backgroundsBaseUrl}/windy.png`)});
+            --bwc-background-color-start: var(--bwc-background-color-day-cloudy-start);
+            --bwc-background-color-end: var(--bwc-background-color-day-cloudy-end);
+          }
         }
       }
     `;
